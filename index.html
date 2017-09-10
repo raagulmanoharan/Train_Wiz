@@ -1,0 +1,599 @@
+	<html>
+	<body>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+		<script src="springy.js"></script>
+		<script src="springyui.js"></script>
+		<script>
+			var graph = new Springy.Graph();
+
+			var opn=1;
+
+
+			var main = graph.newNode({
+				label: 'I want to go',
+				ondoubleclick: function() { }
+			});
+
+	//goa part starts
+	var goa = graph.newNode({label: 'Goa', ondoubleclick:function() {
+		var opn_ltt=1;
+		if(opn==1)
+		{
+
+			var LTT = graph.newNode({label: 'Lokmanyatilak Terminus', ondoubleclick:function(){
+
+
+
+				if(opn_ltt==1)
+				{
+
+					var KRMI = graph.newNode({label: 'Karmali',ondoubleclick:function(){
+
+						var TRAIN1 = graph.newNode({label: 'KCVL GARIB RATH', ondoubleclick:function(){
+
+							var time = graph.newNode({label: '16:55 (Reaches by 03:40)'});
+							graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+						}});
+						var TRAIN2 = graph.newNode({label: 'NETRAVATI EXP',ondoubleclick:function(){
+
+							var time = graph.newNode({label: '11:40 (Reaches by 22:58)'});
+							graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+						}});
+						var TRAIN3 = graph.newNode({label: 'LTT KRMI EXP',ondoubleclick:function(){
+
+							var time = graph.newNode({label: '01:10 (Reaches by 11:00)'});
+							graph.newEdge(TRAIN3, time, {color: '#006400', label:'Starts at'});
+
+						}});
+
+						graph.newEdge(KRMI, TRAIN1, {color: '#008080', label:'Board'});
+						graph.newEdge(KRMI, TRAIN2, {color: '#008080', label:'Board'});
+						graph.newEdge(KRMI, TRAIN3, {color: '#008080', label:'Board'});
+
+					}});
+
+
+					var CNO = graph.newNode({label: 'Canacona',ondoubleclick:function(){
+
+						var TRAIN1 = graph.newNode({label: 'MatsyaGandha Exp', ondoubleclick:function(){
+
+							var time = graph.newNode({label: '15:20 (Reaches by 03:18)'});
+							graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+						}});
+						var TRAIN2 = graph.newNode({label: 'NETRAVATI EXP',ondoubleclick:function(){
+
+							var time = graph.newNode({label: '11:40 (Reaches by 00:14)'});
+							graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+						}});
+
+						graph.newEdge(CNO, TRAIN1, {color: '#008080', label:'Board'});
+						graph.newEdge(CNO, TRAIN2, {color: '#008080', label:'Board'});
+					}});
+
+
+
+					var THVM = graph.newNode({label: 'Thivim',ondoubleclick:function(){
+
+						var TRAIN1 = graph.newNode({label: 'Netravati Exp', ondoubleclick:function(){
+
+							var time = graph.newNode({label: '11:40 (Reaches by 22:40)'});
+							graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+						}});
+
+						graph.newEdge(THVM, TRAIN1, {color: '#008080', label:'Board'});
+
+					}});
+
+					var PERN = graph.newNode({label: 'Pernem',ondoubleclick:function(){
+
+						var TRAIN1 = graph.newNode({label: 'LTT KCVL Exp', ondoubleclick:function(){
+
+							var time = graph.newNode({label: '16:55 (Reaches by 02:50)'});
+							graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+						}});
+
+						graph.newEdge(PERN, TRAIN1, {color: '#008080', label:'Board'});
+					}});
+
+
+
+
+					graph.newEdge(LTT, KRMI, {color: '#8B4513', label:'going to'});
+					graph.newEdge(LTT, CNO, {color: '#8B4513', label:'going to'});
+					graph.newEdge(LTT, THVM, {color: '#8B4513', label:'going to'});
+					graph.newEdge(LTT, PERN, {color: '#8B4513', label:'going to'});
+
+					opn_ltt = 0;
+				}
+
+
+			}});
+
+
+
+
+
+
+			var DR = graph.newNode({label: 'Dadar', ondoubleclick:function(){
+
+				var THVM = graph.newNode({label: 'Thivim',ondoubleclick:function(){
+
+					var TRAIN1 = graph.newNode({label: 'Jan Shatabdi Exp', ondoubleclick:function(){
+
+						var time = graph.newNode({label: '05:25 (Reaches by 14:52)'});
+						graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+					}});
+
+					graph.newEdge(THVM, TRAIN1, {color: '#008080', label:'Board'});
+
+
+					
+
+
+
+				}});
+
+				var MAO = graph.newNode({label: 'Madgaon',ondoubleclick:function(){
+
+					var TRAIN2 = graph.newNode({label: 'Dadar ten Exp', ondoubleclick:function(){
+
+						var time = graph.newNode({label: '20:40 (Reaches by 08:25)'});
+						graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+					}});
+
+					graph.newEdge(MAO, TRAIN2, {color: '#008080', label:'Board'});
+				}});
+
+				graph.newEdge(DR, THVM, {color: '#8B4513', label:'going to'});
+				graph.newEdge(DR, MAO, {color: '#8B4513', label:'going to'});
+
+
+
+			}});
+
+
+
+
+			var CST = graph.newNode({label: 'Mumbai CST',ondoubleclick:function(){
+
+				var PERN = graph.newNode({label: 'Pernem',ondoubleclick:function(){
+
+					var TRAIN1 = graph.newNode({label: 'Mandori Exp', ondoubleclick:function(){
+
+						var time = graph.newNode({label: '07:10 (Reaches by 18:19)'});
+						graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+					}});
+
+					graph.newEdge(PERN, TRAIN1, {color: '#008080', label:'Board'});
+
+
+					
+
+
+
+				}});
+
+				var THVM = graph.newNode({label: 'Thivim',ondoubleclick:function(){
+
+					var TRAIN2 = graph.newNode({label: 'Mandori Exp', ondoubleclick:function(){
+
+						var time = graph.newNode({label: '07:10 (Reaches by 18:34)'});
+						graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+					}});
+
+					graph.newEdge(THVM, TRAIN2, {color: '#008080', label:'Board'});
+				}});
+
+				
+
+				var KRMI = graph.newNode({label: 'Karmali',ondoubleclick:function(){
+
+					var TRAIN3 = graph.newNode({label: 'Mandori Exp', ondoubleclick:function(){
+
+						var time = graph.newNode({label: '07:10 (Reaches by 19:01)'});
+						graph.newEdge(TRAIN3, time, {color: '#006400', label:'Starts at'});
+
+					}});
+
+					graph.newEdge(KRMI, TRAIN3, {color: '#008080', label:'Board'});
+
+
+					
+
+
+
+				}});
+
+				var MAO = graph.newNode({label: 'Madgaon',ondoubleclick:function(){
+
+					var TRAIN4 = graph.newNode({label: 'Mandori Exp', ondoubleclick:function(){
+
+						var time = graph.newNode({label: '07:10 (Reaches by 20:10)'});
+						graph.newEdge(TRAIN4, time, {color: '#006400', label:'Starts at'});
+
+					}});
+
+					graph.newEdge(MAO, TRAIN4, {color: '#008080', label:'Board'});
+				}});
+
+				graph.newEdge(CST, PERN, {color: '#8B4513', label:'going to'});
+				graph.newEdge(CST, THVM, {color: '#8B4513', label:'going to'});
+				graph.newEdge(CST, KRMI, {color: '#8B4513', label:'going to'});
+				graph.newEdge(CST, MAO, {color: '#8B4513', label:'going to'});
+
+
+
+
+
+
+			}});
+
+
+
+			//var PNVL = graph.newNode({label: 'Panvel'});
+			//var BDTS = graph.newNode({label: 'Bandra Terminus'});
+			//var BSR = graph.newNode({label: 'Vasai Road'});
+			//var KYN = graph.newNode({label: 'Kalyan Junction'});
+
+
+
+			graph.newEdge(goa, LTT, {color: '#ff0000', label:'boarding from'});
+			graph.newEdge(goa, DR, {color: '#ff0000', label:'boarding from'});
+			graph.newEdge(goa, CST, {color: '#ff0000', label:'boarding from'});
+			//graph.newEdge(goa, PNVL, {color: '#ff0000', label:'boarding from'});
+			//graph.newEdge(goa, BDTS, {color: '#ff0000', label:'boarding from'});
+			//graph.newEdge(goa, BSR, {color: '#ff0000', label:'boarding from'});
+			//graph.newEdge(goa, KYN, {color: '#ff0000', label:'boarding from'});
+
+			opn = 0;
+		}
+
+
+
+
+
+		
+
+
+
+	}});
+	//var Nashik = graph.newNode({label: 'Nashik'});
+	var Aurangabad = graph.newNode({label: 'Aurangabad',ondoubleclick:function(){
+
+		var LTT = graph.newNode({label: 'Lokmanyatilak Terminus',ondoubleclick:function(){
+
+			var TRAIN1 = graph.newNode({label: 'LTT Ajni Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '15:50 (Reaches by 00:20)'});
+				graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN2 = graph.newNode({label: 'LTT NZB Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '16:40 (Reaches by 00:20)'});
+				graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			
+
+			graph.newEdge(LTT, TRAIN1, {color: '#008080', label:'Board'});
+			graph.newEdge(LTT, TRAIN2, {color: '#008080', label:'Board'});
+
+		}});
+
+
+		var CST = graph.newNode({label: 'Mumbai CST',ondoubleclick:function(){
+
+			var TRAIN1 = graph.newNode({label: 'Nandigram Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '16:35 (Reaches by 23:45)'});
+				graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN2 = graph.newNode({label: 'Devagiri Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '21:10 (Reaches by 04:10)'});
+				graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN3 = graph.newNode({label: 'Tapovan Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '06:15 (Reaches by 13:15)'});
+				graph.newEdge(TRAIN3, time, {color: '#006400', label:'Starts at'});
+
+			}});
+			
+
+			graph.newEdge(CST, TRAIN1, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN2, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN3, {color: '#008080', label:'Board'});
+
+
+		}});
+		var DR = graph.newNode({label: 'Dadar',ondoubleclick:function(){
+
+			var TRAIN1 = graph.newNode({label: 'Jan Shatabdi Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '14:00 (Reaches by 20:35)'});
+				graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			
+
+			graph.newEdge(DR, TRAIN1, {color: '#008080', label:'Board'});
+		}});
+
+
+		graph.newEdge(Aurangabad, LTT, {color: '#ff0000', label:'boarding from'});
+		graph.newEdge(Aurangabad, CST, {color: '#ff0000', label:'boarding from'});
+		graph.newEdge(Aurangabad, DR, {color: '#ff0000', label:'boarding from'});
+
+
+
+
+
+
+
+
+	}});
+
+
+	var Kolhapur = graph.newNode({label: 'Kolhapur',ondoubleclick:function(){
+
+		var CST = graph.newNode({label: 'Mumbai CST',ondoubleclick:function(){
+
+			var TRAIN1 = graph.newNode({label: 'Sahyadri Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '17:50 (Reaches by 06:05)'});
+				graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN2 = graph.newNode({label: 'Koyna Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '08:40 (Reaches by 20:25)'});
+				graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN3 = graph.newNode({label: 'Mahalaxmi Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '20:23 (Reaches by 07:20)'});
+				graph.newEdge(TRAIN3, time, {color: '#006400', label:'Starts at'});
+
+			}});
+			
+
+			graph.newEdge(CST, TRAIN1, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN2, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN3, {color: '#008080', label:'Board'});
+
+
+		}});
+
+		graph.newEdge(Kolhapur, CST, {color: '#ff0000', label:'boarding from'});
+
+
+	}});
+
+	var Khandala = graph.newNode({label: 'Khandala',ondoubleclick:function(){
+
+		var CST = graph.newNode({label: 'Mumbai CST',ondoubleclick:function(){
+
+			var TRAIN1 = graph.newNode({label: 'DECCAN Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '07:00 (Reaches by 09:28)'});
+				graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN2 = graph.newNode({label: 'SINHAGAD Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '14:30 (Reaches by 16:53)'});
+				graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN3 = graph.newNode({label: 'SAHYADRI Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '17:50 (Reaches by 20:03)'});
+				graph.newEdge(TRAIN3, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN4 = graph.newNode({label: 'KOYNA Exp', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '08:40 (Reaches by 10:58)'});
+				graph.newEdge(TRAIN4, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var more = graph.newNode({label: 'More Trains', ondoubleclick:function(){
+
+				var TRAIN1 = graph.newNode({label: 'SIDDHESHWAR Exp', ondoubleclick:function(){
+
+					var time = graph.newNode({label: '22:45 (Reaches by 00:58)'});
+					graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+				}});
+
+				var TRAIN2 = graph.newNode({label: 'FAST PASSENGER', ondoubleclick:function(){
+
+					var time = graph.newNode({label: '22:55 (Reaches by 01:38)'});
+					graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+				}});
+
+				var TRAIN3 = graph.newNode({label: 'BB BJP FAST PAS', ondoubleclick:function(){
+
+					var time = graph.newNode({label: '22:55 (Reaches by 01:38)'});
+					graph.newEdge(TRAIN3, time, {color: '#006400', label:'Starts at'});
+
+				}});
+
+				var TRAIN4 = graph.newNode({label: 'SHIRDI FAST PAS', ondoubleclick:function(){
+
+					var time = graph.newNode({label: '22:55 (Reaches by 01:38)'});
+					graph.newEdge(TRAIN4, time, {color: '#006400', label:'Starts at'});
+
+				}});
+
+				graph.newEdge(more, TRAIN1, {color: '#008080', label:'Board'});
+				graph.newEdge(more, TRAIN2, {color: '#008080', label:'Board'});
+				graph.newEdge(more, TRAIN3, {color: '#008080', label:'Board'});
+
+
+				graph.newEdge(more, TRAIN4, {color: '#008080', label:'Board'});
+
+
+
+
+
+			}});
+
+
+			
+
+			graph.newEdge(CST, TRAIN1, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN2, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN3, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN4, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, more, {color: '#008080', label:'Board'});
+
+
+
+
+		}});
+
+		graph.newEdge(Khandala, CST, {color: '#ff0000', label:'boarding from'});
+
+
+	}});
+
+
+
+
+
+	var Mahabaleshwar = graph.newNode({label: 'Mahabaleshwar',ondoubleclick:function(){
+
+
+		var CST = graph.newNode({label: 'Mumbai CST',ondoubleclick:function(){
+
+			var TRAIN1 = graph.newNode({label: 'SAHYADRI EXPRES', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '17:50 (Reaches by 00:58)'});
+				graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN2 = graph.newNode({label: 'KOYNA EXPRESS', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '08:40 (Reaches by 15:10)'});
+				graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			
+
+			graph.newEdge(CST, TRAIN1, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN2, {color: '#008080', label:'Board'});
+
+		}});
+
+		graph.newEdge(Mahabaleshwar, CST, {color: '#ff0000', label:'boarding from'});
+
+
+
+
+
+	}});
+
+	var Matheran = graph.newNode({label: 'Matheran',ondoubleclick:function(){
+
+		var CST = graph.newNode({label: 'Mumbai CST',ondoubleclick:function(){
+
+			var TRAIN1 = graph.newNode({label: 'DECCAN EXPRESS', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '07:00 (Reaches by 08:25)'});
+				graph.newEdge(TRAIN1, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			var TRAIN2 = graph.newNode({label: 'KOYNA EXPRESS', ondoubleclick:function(){
+
+				var time = graph.newNode({label: '08:40 (Reaches by 10:03)'});
+				graph.newEdge(TRAIN2, time, {color: '#006400', label:'Starts at'});
+
+			}});
+
+			
+
+			graph.newEdge(CST, TRAIN1, {color: '#008080', label:'Board'});
+			graph.newEdge(CST, TRAIN2, {color: '#008080', label:'Board'});
+
+		}});
+
+		graph.newEdge(Matheran, CST, {color: '#ff0000', label:'boarding from'});
+
+
+
+
+	}});
+
+
+
+	//var Ratnagiri = graph.newNode({label: 'Ratnagiri'});
+
+	//var Solapur = graph.newNode({label: 'Solapur'});
+
+	graph.newEdge(main, goa, {color: '#00A0B0'});
+	//graph.newEdge(main, Nashik, {color: '#00A0B0'});
+	graph.newEdge(main, Aurangabad, {color: '#00A0B0'});
+	graph.newEdge(main, Kolhapur, {color: '#00A0B0'});
+	graph.newEdge(main, Mahabaleshwar, {color: '#00A0B0'});
+	//graph.newEdge(main, Solapur, {color: '#00A0B0'});
+	graph.newEdge(main, Matheran, {color: '#00A0B0'});
+	graph.newEdge(main, Khandala, {color: '#00A0B0'});
+	//graph.newEdge(main, Ratnagiri, {color: '#00A0B0'});
+
+
+
+	jQuery(function(){
+		var springy = window.springy = jQuery('#springydemo').springy({
+			graph: graph,
+			nodeSelected: function(node){
+
+
+
+
+
+
+
+	      //console.log('Node selected: ' + JSON.stringify(node.data.label));
+
+
+	  },
+	  repulsion: 2
+
+	});
+	});
+</script>
+
+<canvas id="springydemo" width="1280" height="720" />
+</body>
+</html>
