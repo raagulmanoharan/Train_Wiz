@@ -1,0 +1,96 @@
+name: Ashen Crown v5 verification
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/ashen-crown-v5-review.yml', 'ashen-crown/*-v5.js', 'ashen-crown/ui-v5.css', 'ashen-crown/v5.html', 'ashen-crown/lore.js']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: crown-v5-review
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          mkdir -p /tmp/crown-review
+          cd /tmp/crown-review
+          npm init -y
+          npm install playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Render actual game and test interactions
+        env:
+          REVIEW_REPO: ${{ github.workspace }}
+        run: |
+          cd /tmp/crown-review
+          cat > review.cjs <<'JS'
+          const fs=require('fs'),assert=require('node:assert/strict');
+          const {spawn}=require('node:child_process');
+          const {chromium}=require('playwright');
+          const START='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+          async function main(){
+            fs.mkdirSync('output',{recursive:true});
+            for(const f of ['v5.html','world-v5.js','cinema-v5.js','damage-v5.js','engine-v5.js','game-v5.js','ui-v5.css','lore.js'])fs.copyFileSync(process.env.REVIEW_REPO+'/ashen-crown/'+f,'output/'+f);
+            const report={commit:process.env.GITHUB_SHA,scope:'Real Three.js WebGL and Stockfish WASM in Chromium using SwiftShader. Not a physical iPhone performance test.',screenshots:[],tests:[],errors:[],warnings:[]};
+            const server=spawn('python3',['-m','http.server','4173','--bind','127.0.0.1','--directory',process.env.REVIEW_REPO],{stdio:'ignore'});
+            await new Promise(r=>setTimeout(r,800));
+            const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
+            let page;
+            const shot=async(name)=>{await page.screenshot({path:'output/'+name+'.png'});report.screenshots.push(name)};
+            const state=()=>page.evaluate(()=>window.__ASHEN_QA__.state());
+            const waitPlay=()=>page.waitForFunction(()=>['play','ended'].includes(window.__ASHEN_QA__.state().mode),null,{timeout:35000});
+            const load=async(fen=START,opts={})=>{await page.evaluate(({fen,opts})=>{window.__ASHEN_QA__.load(fen,opts);window.__ASHEN_QA__.resume()},{fen,opts});await page.waitForTimeout(150)};
+            const move=async(from,to,promotion)=>{assert.equal(await page.evaluate(({from,to,promotion})=>window.__ASHEN_QA__.move(from,to,promotion),{from,to,promotion}),true);if((await state()).mode==='capture')await page.evaluate(()=>window.__ASHEN_QA__.skip());await waitPlay()};
+            const test=async(name,fn)=>{try{const details=await fn();report.tests.push({name,passed:true,details});console.log('PASS',name)}catch(e){report.tests.push({name,passed:false,error:String(e)});report.errors.push(name+': '+e);console.error('FAIL',name,e);await shot('failure-'+report.tests.length).catch(()=>{})}};
+            try{
+              for(const view of [{name:'phone',width:393,height:852},{name:'small-phone',width:360,height:640},{name:'landscape',width:844,height:390},{name:'desktop',width:1440,height:1000}]){
+                page=await browser.newPage({viewport:{width:view.width,height:view.height},deviceScaleFactor:1,hasTouch:view.width<900,isMobile:view.width<900});
+                page.on('pageerror',e=>report.errors.push(view.name+' '+e.message));
+                page.on('console',e=>{if(e.type()==='error')report.errors.push(view.name+' '+e.text());else if(e.type()==='warning'&&!e.text().includes('GPU stall'))report.warnings.push(e.text())});
+                await page.goto('http://127.0.0.1:4173/ashen-crown/v5.html?qa=1',{waitUntil:'networkidle',timeout:60000});
+                try{await page.waitForFunction(()=>window.__ASHEN_READY__===true,null,{timeout:45000})}catch(e){await shot(view.name+'-loading-error');throw e}
+                await page.waitForTimeout(500);await shot(view.name+'-full-scene');
+                const bounds=await page.evaluate(()=>({width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,canvas:document.querySelector('canvas').getBoundingClientRect().toJSON()}));
+                assert.equal(bounds.canvas.width,view.width);assert.equal(bounds.canvas.height,view.height);assert(bounds.scrollWidth<=view.width);assert(bounds.scrollHeight<=view.height+1);assert.equal((await state()).pieces,32);
+                report.tests.push({name:view.name+' full-viewport canvas and 32 pieces',passed:true,details:bounds});
+                if(view.name==='phone'){
+                  await page.click('#menuBtn');await page.click('#newBtn');await page.selectOption('#modeSetting','ai');await page.selectOption('#styleSetting','attacking');await page.click('[data-level="2"]');await shot('phone-opponent-setup');await page.click('#newDialog .dismiss');
+                  const initial=await state();await page.mouse.move(200,400);await page.mouse.down();await page.mouse.move(240,480,{steps:5});await page.mouse.up();await page.mouse.wheel(0,200);await page.waitForTimeout(200);assert.deepEqual((await state()).camera,initial.camera);
+                  const s=await page.evaluate(()=>window.__ASHEN_QA__.project('e2'));await page.mouse.click(s.x,s.y);const d=await page.evaluate(()=>window.__ASHEN_QA__.project('e4'));await page.mouse.click(d.x,d.y);await waitPlay();assert((await state()).fen.includes('4P3'));assert.deepEqual((await state()).camera,initial.camera);report.tests.push({name:'Real tap-to-move and locked camera under moves, drag and wheel',passed:true});
+                  await load();await page.evaluate(()=>window.__ASHEN_QA__.preview('n'));await page.evaluate(()=>window.__ASHEN_QA__.setTime(.59));await page.waitForTimeout(400);await shot('phone-capture-before-impact');assert((await state()).minClearance>=-.005);await page.evaluate(()=>window.__ASHEN_QA__.setTime(.69));await shot('phone-capture-impact');await page.evaluate(()=>window.__ASHEN_QA__.setTime(.84));await page.waitForTimeout(500);await shot('phone-capture-aftermath');await page.evaluate(()=>{window.__ASHEN_QA__.skip();window.__ASHEN_QA__.resume()});assert.equal((await state()).fen,START);
+                  await page.evaluate(()=>window.__ASHEN_QA__.damageScenario());await page.waitForTimeout(400);await shot('phone-damage-test-position');
+                }
+                if(view.name==='desktop'){
+                  await test('Damage distribution, queen weight and undo restoration',async()=>{await load('4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1',{cinema:'off'});await move('e4','d5');assert.equal((await state()).damage.b,9);assert.equal((await state()).damage.w,0);await page.evaluate(()=>window.__ASHEN_QA__.undo());assert.equal((await state()).damage.b,0);await page.evaluate(()=>window.__ASHEN_QA__.damageScenario());await page.waitForTimeout(500);await shot('desktop-damage-test-position');return (await state()).damage;});
+                  await test('All six attacker types stay separated before impact; preview restores match',async()=>{const details=[];for(const type of ['p','n','b','r','q','k']){await load();const before=await state();await page.evaluate(type=>window.__ASHEN_QA__.preview(type),type);await page.evaluate(()=>window.__ASHEN_QA__.setTime(.599));let s=await state();assert(s.minClearance>=-.005,type+' penetration '+s.minClearance);details.push({type,clearance:s.minClearance});if(type==='n'){await page.evaluate(()=>window.__ASHEN_QA__.setTime(.685));await shot('desktop-capture-impact');await page.evaluate(()=>window.__ASHEN_QA__.setTime(.84));await page.waitForTimeout(500);await shot('desktop-capture-aftermath')}await page.evaluate(()=>{window.__ASHEN_QA__.skip();window.__ASHEN_QA__.resume()});assert.equal((await state()).fen,before.fen);assert.deepEqual((await state()).board,before.board);assert.deepEqual((await state()).camera,before.camera);}return details});
+                  await test('Capture, en passant, castling and underpromotion',async()=>{await load(START,{cinema:'off'});await move('e2','e4');await move('d7','d5');await move('e4','d5');assert.equal((await state()).pieces,31);assert.equal((await state()).damage.b,1);await load('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1',{cinema:'off'});await move('e1','g1');assert.equal((await state()).board.find(p=>p.id==='h1').square,'f1');await load('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1',{cinema:'off'});await move('e5','d6');assert.equal((await state()).pieces,3);assert.equal((await state()).board.find(p=>p.id==='d5').alive,false);await load('4k3/P7/8/8/8/8/8/4K3 w - - 0 1',{cinema:'off'});await move('a7','a8','r');assert.equal((await state()).board.find(p=>p.id==='a7').type,'r')});
+                  await test('Checkmate ends the match without capturing the king',async()=>{await load(START,{cinema:'off'});await move('f2','f3');await move('e7','e5');await move('g2','g4');await move('d8','h4');assert.equal((await state()).mode,'ended');assert.equal((await state()).pieces,32);assert.equal((await state()).result.title,'Veyr wins');await shot('desktop-checkmate')});
+                  await test('Four Stockfish difficulties and three play styles return legal moves',async()=>{const details=[];for(const level of [0,1,2,3]){const style=['balanced','attacking','defensive','balanced'][level];await page.evaluate(opts=>{window.__ASHEN_QA__.newAI(opts);window.__ASHEN_QA__.resume()},{level,style,side:'b',cinema:'off'});await waitPlay();let s=await state();assert.equal(s.engineReady,true);assert.equal(s.fen.split(' ')[1],'b');assert.notEqual(s.fen,START);details.push({level,style,fen:s.fen})}return details});
+                  await test('AI responds to the player, takeback restores whole turn, hint preserves FEN',async()=>{await page.evaluate(()=>window.__ASHEN_QA__.newAI({side:'w',level:1,style:'balanced',cinema:'off'}));await move('e2','e4');assert.equal((await state()).fen.split(' ')[1],'w');assert.equal((await state()).fen.split(' ')[5],'2');await page.evaluate(()=>window.__ASHEN_QA__.undo());assert.equal((await state()).fen,START);const before=(await state()).fen;await page.evaluate(()=>window.__ASHEN_QA__.hint());await waitPlay();assert.equal((await state()).fen,before);assert((await page.locator('#toast').textContent()).includes('Consider'));await shot('desktop-hint')});
+                  await load();
+                }
+                await page.close();
+              }
+              page=await browser.newPage({viewport:{width:393,height:852},deviceScaleFactor:1});
+              await test('Saved match and visual damage survive reload',async()=>{await page.addInitScript(()=>localStorage.setItem('ashen-crown-v5',JSON.stringify({version:5,startFen:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',moves:['e2e4','d7d5','e4d5'],settings:{mode:'local',side:'w',level:1,style:'balanced',cinema:'off',damage:true,sound:false,reduced:false},result:null})));await page.goto('http://127.0.0.1:4173/ashen-crown/v5.html',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__ASHEN_READY__===true,null,{timeout:45000});await page.click('#menuBtn');await page.click('#recordBtn');assert((await page.locator('#blackDamageText').textContent()).includes('1 pieces lost'));assert((await page.locator('#moveRecord').textContent()).includes('exd5'));await shot('phone-saved-journal');await page.reload({waitUntil:'networkidle'});await page.waitForFunction(()=>window.__ASHEN_READY__===true);await page.click('#menuBtn');await page.click('#recordBtn');assert((await page.locator('#moveRecord').textContent()).includes('exd5'))});
+              report.passed=report.errors.length===0&&report.tests.every(t=>t.passed);
+            }catch(e){report.passed=false;report.errors.push(String(e));await shot('fatal').catch(()=>{})}
+            finally{fs.writeFileSync('output/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();server.kill();}
+            if(!report.passed)process.exitCode=1;
+          }
+          main().catch(e=>{console.error(e);process.exitCode=1});
+          JS
+          node review.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-v5-review
+          path: /tmp/crown-review/output
+          retention-days: 7
