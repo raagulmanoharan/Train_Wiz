@@ -74,12 +74,12 @@ jobs:
                 const dimensions=await page.evaluate(()=>({w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight}));assert(dimensions.w<=view.width);assert(dimensions.h<=view.height+1);
                 report.views.push({view,env,points});report.tests.push(view.name+': loaded HDR and stone; 32 pieces; fullscreen canvas; four corners visible; no overflow');
                 if(view.name==='phone'){
-                  const before=state.camera;
+                  await page.evaluate(()=>window.__ASHEN_QA__.load('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',{mode:'local',cinema:'off'}));await page.waitForTimeout(120);const localState=await page.evaluate(()=>window.__ASHEN_QA__.state());const before=localState.camera;
                   await page.mouse.move(180,350);await page.mouse.down();await page.mouse.move(240,480,{steps:5});await page.mouse.up();await page.mouse.wheel(0,220);await page.waitForTimeout(300);
                   assert.deepEqual((await page.evaluate(()=>window.__ASHEN_QA__.state())).camera,before);
                   let p=await page.evaluate(()=>window.__ASHEN_QA__.project('e2'));await page.mouse.click(p.x,p.y);await page.waitForTimeout(300);await page.screenshot({path:'output/phone-selection.png',timeout:60000});
                   p=await page.evaluate(()=>window.__ASHEN_QA__.project('e4'));await page.mouse.click(p.x,p.y);await page.waitForFunction(()=>window.__ASHEN_QA__.state().mode==='play',null,{timeout:15000});
-                  const moved=await page.evaluate(()=>window.__ASHEN_QA__.state());assert.notEqual(moved.fen,state.fen);assert.deepEqual(moved.camera,before);report.tests.push('Tap e2 to e4 works; normal moves, drag and wheel leave the camera unchanged');
+                  const moved=await page.evaluate(()=>window.__ASHEN_QA__.state());assert.notEqual(moved.fen,localState.fen);assert.deepEqual(moved.camera,before);report.tests.push('Tap e2 to e4 works; normal moves, drag and wheel leave the camera unchanged');
                   await page.click('#menuBtn');assert(await page.locator('#menuDialog').evaluate(d=>d.open));await page.click('#menuDialog .dismiss');report.tests.push('Top menu opens and closes');
                 }
                 if(view.name==='desktop'){
