@@ -1,0 +1,34 @@
+name: Ashen Crown material recovery
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/ashen-crown-materials.yml']
+permissions:
+  contents: read
+jobs:
+  materials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Download official material manifest and 1k textures
+        run: |
+          mkdir -p /tmp/crown-materials
+          cd /tmp/crown-materials
+          node <<'JS'
+          const fs=require('fs');
+          (async()=>{
+            const r=await fetch('https://api.polyhaven.com/files/chess_set');if(!r.ok)throw Error(r.status);
+            const data=await r.json();fs.writeFileSync('official-manifest.json',JSON.stringify(data,null,2));
+            const records=[];function walk(x,path=''){if(!x||typeof x!=='object')return;if(typeof x.url==='string')records.push({path,url:x.url});for(const [k,v]of Object.entries(x))if(v&&typeof v==='object')walk(v,path+'/'+k)}walk(data);
+            const urls=[...new Set(records.filter(x=>/\.(jpg|png)$/i.test(x.url)&&/chess_set_(board|pieces_white|pieces_black)_(diff|nor_gl|arm)/.test(x.url)&&/1k/.test(x.url)).map(x=>x.url))];
+            fs.writeFileSync('urls.json',JSON.stringify(records,null,2));
+            console.log('Matched',urls.length);
+            for(const url of urls){const r=await fetch(url);console.log(r.status,url);if(!r.ok)throw Error('Texture HTTP '+r.status);fs.writeFileSync(url.split('/').pop(),Buffer.from(await r.arrayBuffer()))}
+          })().catch(e=>{console.error(e);process.exitCode=1});
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ashen-crown-official-materials
+          path: /tmp/crown-materials
+          retention-days: 7
