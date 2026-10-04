@@ -37,11 +37,11 @@ export function createWorld(stage){
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(90,90),floorMat);floor.rotation.x=-Math.PI/2;floor.position.y=-4.4;floor.receiveShadow=true;room.add(floor);
  // Rounded, weighty tabletop with planar stone coordinates.
  const tableMat=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.50,metalness:0,clearcoat:.11,clearcoatRoughness:.46});
- const table=lathe([[0,-.49],[8.52,-.49],[8.70,-.43],[8.80,-.29],[8.80,-.13],[8.74,-.045],[8.65,0],[0,0]],tableMat,room,192);table.scale.z=1.22;table.name='Emerald marble table';
- const tpos=table.geometry.attributes.position,tuv=table.geometry.attributes.uv;for(let i=0;i<tpos.count;i++)tuv.setXY(i,tpos.getX(i)/17.6+.5,tpos.getZ(i)/17.6+.5);tuv.needsUpdate=true;
- torus(8.69,.018,darkBrass,room,[0,-.38,0]).scale.y=1.22;
+ const table=lathe([[0,-.49],[10.8,-.49],[11.0,-.43],[11.12,-.29],[11.12,-.13],[11.04,-.045],[10.94,0],[0,0]],tableMat,room,192);table.scale.z=1.18;table.name='Emerald marble table';
+ const tpos=table.geometry.attributes.position,tuv=table.geometry.attributes.uv;for(let i=0;i<tpos.count;i++)tuv.setXY(i,tpos.getX(i)/22.24+.5,tpos.getZ(i)/22.24+.5);tuv.needsUpdate=true;
+ torus(11.0,.018,darkBrass,room,[0,-.38,0]).scale.y=1.18;
  lathe([[0,-4.35],[1.55,-4.35],[1.70,-4.18],[.72,-3.9],[.40,-1.7],[1.35,-.5]],darkBrass,room,96);
- const chair=new THREE.Group();chair.position.set(0,-3.5,10.25);room.add(chair);rounded(4.8,.50,4.3,.23,leather,chair);rounded(4.8,2.2,.40,.22,leather,chair,[0,1.1,1.95]);
+ const chair=new THREE.Group();chair.position.set(0,-3.5,13.8);room.add(chair);rounded(4.8,.50,4.3,.23,leather,chair);rounded(4.8,2.2,.40,.22,leather,chair,[0,1.1,1.95]);
  // Turned brass lamp: separate shell, inner reflector, lip and visible bulb.
  const lamp=new THREE.Group();lamp.name='Brass practical lamp';lamp.position.set(6.15,.015,-6.95);props.add(lamp);
  lathe([[0,0],[.85,0],[.98,.08],[.98,.16],[.91,.24],[.50,.31],[.25,.42],[.16,.62],[.14,2.5]],brass,lamp);
@@ -50,7 +50,7 @@ export function createWorld(stage){
  const bulb=new THREE.Mesh(new THREE.SphereGeometry(.23,24,16),new THREE.MeshStandardMaterial({color:0xffdba5,emissive:0xffb354,emissiveIntensity:2.7,roughness:.2}));bulb.position.set(0,2.37,0);lamp.add(bulb);const practical=new THREE.PointLight(0xffb768,8,9,2);practical.position.set(0,2.21,0);lamp.add(practical);
  const cable=new THREE.CatmullRomCurve3([V(.25,.03,-.9),V(.6,.03,-2),V(1.8,.02,-2.4),V(2.6,-.03,-2.5)]);lamp.add(new THREE.Mesh(new THREE.TubeGeometry(cable,32,.022,8,false),new THREE.MeshStandardMaterial({color:0x16130f,roughness:.7})));
  // Closed book with recessed pages, spine, page lines and stamped cover.
- const book=new THREE.Group();book.name='The unread book';book.position.set(4.10,.025,-5.95);book.rotation.y=-.31;book.scale.setScalar(1.22);props.add(book);
+ const book=new THREE.Group();book.name='The unread book';book.position.set(3.72,.025,-4.55);book.rotation.y=-.31;book.scale.setScalar(1.22);props.add(book);
  const pagesCanvas=document.createElement('canvas');pagesCanvas.width=64;pagesCanvas.height=512;const pg=pagesCanvas.getContext('2d');pg.fillStyle='#b8ab91';pg.fillRect(0,0,64,512);const rnd=seeded(846);for(let i=0;i<180;i++){pg.fillStyle=`rgba(57,42,32,${.1+rnd()*.23})`;pg.fillRect(0,i*3,64,1)}
  const paper=new THREE.MeshStandardMaterial({map:canvasTexture(pagesCanvas),roughness:.94});rounded(2.05,.28,2.95,.035,paper,book,[0,.20,0]);rounded(2.20,.075,3.1,.035,leather,book,[0,.047,0]);rounded(2.20,.075,3.1,.035,leather,book,[0,.375,0]);rounded(.12,.39,3.1,.035,leather,book,[-1.06,.2,0]);
  const title=document.createElement('canvas');title.width=512;title.height=768;const tc=title.getContext('2d');tc.strokeStyle='#a18655';tc.lineWidth=1;tc.strokeRect(41,48,430,672);tc.strokeRect(49,56,414,656);tc.textAlign='center';tc.fillStyle='#b9a178';tc.font='28px Georgia';['THE','QUIET','HOURS'].forEach((s,i)=>tc.fillText(s,256,285+i*49));tc.font='13px Georgia';tc.fillText('EDRATH  /  XL',256,655);
@@ -108,9 +108,9 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
    camera.fov=38;
    const pitch=THREE.MathUtils.degToRad(68);
    const back=V(0,Math.sin(pitch),sign*Math.cos(pitch));
-   target.set(0,.40,0);
+   target.set(0,.40,-sign*.62);
    const desiredBoardWidth=8.9;
-   const desiredWidthFraction=.74;
+   const desiredWidthFraction=.82;
    const tanHalfV=Math.tan(THREE.MathUtils.degToRad(camera.fov*.5));
    const tanHalfH=tanHalfV*camera.aspect;
    const distance=desiredBoardWidth/(2*desiredWidthFraction*tanHalfH);
