@@ -50,14 +50,14 @@ export function createWorld(stage){
  const bulb=new THREE.Mesh(new THREE.SphereGeometry(.23,24,16),new THREE.MeshStandardMaterial({color:0xffdba5,emissive:0xffb354,emissiveIntensity:2.7,roughness:.2}));bulb.position.set(0,2.37,0);lamp.add(bulb);const practical=new THREE.PointLight(0xffb768,10,10,2);practical.position.set(0,2.21,0);lamp.add(practical);
  const cable=new THREE.CatmullRomCurve3([V(.25,.03,-.9),V(.6,.03,-2),V(1.8,.02,-2.4),V(2.6,-.03,-2.5)]);lamp.add(new THREE.Mesh(new THREE.TubeGeometry(cable,32,.022,8,false),new THREE.MeshStandardMaterial({color:0x16130f,roughness:.7})));
  // Closed book with recessed pages, spine, page lines and stamped cover.
- const book=new THREE.Group();book.name='The unread book';book.position.set(3.48,.025,-5.48);book.rotation.y=-.34;book.scale.setScalar(1.42);props.add(book);
+ const book=new THREE.Group();book.name='The unread book';book.position.set(3.78,.025,-5.82);book.rotation.y=-.33;book.scale.setScalar(1.36);props.add(book);
  const pagesCanvas=document.createElement('canvas');pagesCanvas.width=64;pagesCanvas.height=512;const pg=pagesCanvas.getContext('2d');pg.fillStyle='#b8ab91';pg.fillRect(0,0,64,512);const rnd=seeded(846);for(let i=0;i<180;i++){pg.fillStyle=`rgba(57,42,32,${.1+rnd()*.23})`;pg.fillRect(0,i*3,64,1)}
  const paper=new THREE.MeshStandardMaterial({map:canvasTexture(pagesCanvas),roughness:.94});rounded(2.05,.28,2.95,.035,paper,book,[0,.20,0]);rounded(2.20,.075,3.1,.035,leather,book,[0,.047,0]);rounded(2.20,.075,3.1,.035,leather,book,[0,.375,0]);rounded(.12,.39,3.1,.035,leather,book,[-1.06,.2,0]);
  const title=document.createElement('canvas');title.width=512;title.height=768;const tc=title.getContext('2d');tc.strokeStyle='#a18655';tc.lineWidth=1;tc.strokeRect(41,48,430,672);tc.strokeRect(49,56,414,656);tc.textAlign='center';tc.fillStyle='#b9a178';tc.font='28px Georgia';['THE','QUIET','HOURS'].forEach((s,i)=>tc.fillText(s,256,285+i*49));tc.font='13px Georgia';tc.fillText('EDRATH  /  XL',256,655);
  const stamp=new THREE.Mesh(new THREE.PlaneGeometry(2,2.93),new THREE.MeshStandardMaterial({map:canvasTexture(title),transparent:true,metalness:.6,roughness:.42,polygonOffset:true,polygonOffsetFactor:-1}));stamp.rotation.x=-Math.PI/2;stamp.position.y=.417;book.add(stamp);
  const sphereMat=new THREE.MeshPhysicalMaterial({color:0x152623,roughness:.16,clearcoat:.5,clearcoatRoughness:.10});
 // Cut-glass ashtray and extinguished cigarette replace the decorative orb.
-const ashtray=new THREE.Group();ashtray.name='Cut glass ashtray';ashtray.position.set(-3.68,.035,-5.42);ashtray.scale.setScalar(1.48);props.add(ashtray);
+const ashtray=new THREE.Group();ashtray.name='Cut glass ashtray';ashtray.position.set(-3.82,.035,-5.78);ashtray.scale.setScalar(1.42);props.add(ashtray);
 const ashGlass=new THREE.MeshPhysicalMaterial({color:0xb8ada2,roughness:.18,transmission:.84,thickness:.22,ior:1.50,clearcoat:1,clearcoatRoughness:.12});
 const dish=new THREE.Mesh(new THREE.CylinderGeometry(.92,.78,.18,12,1,true),ashGlass);dish.position.y=.10;dish.castShadow=dish.receiveShadow=true;ashtray.add(dish);
 torus(.84,.075,ashGlass,ashtray,[0,.20,0]);
@@ -81,7 +81,7 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
  const frontFill=new THREE.SpotLight(0xffbd78,10,30,Math.PI*.42,.98,2);frontFill.position.set(-1.8,7.4,8.6);frontFill.target.position.set(0,-.05,2.4);room.add(frontFill,frontFill.target);
  const softKey=new THREE.RectAreaLight(0xffcfa0,4.2,9.5,6.2);softKey.position.set(4.8,7.8,3.8);softKey.lookAt(0,.15,0);room.add(softKey);
  const softFill=new THREE.RectAreaLight(0xa9b3aa,1.6,10,7);softFill.position.set(-5.4,6.8,2.2);softFill.lookAt(0,.1,.3);room.add(softFill);
- const curtainFill=new THREE.RectAreaLight(0x85111e,5.8,12,5.5);curtainFill.position.set(0,5.0,-8.7);curtainFill.lookAt(0,4.2,-13.2);room.add(curtainFill);
+ const curtainFill=new THREE.RectAreaLight(0x8f1221,7.4,12,5.5);curtainFill.position.set(0,5.0,-8.7);curtainFill.lookAt(0,4.2,-13.2);room.add(curtainFill);
  // Existing authored board/piece treatment retained. This pass does not rewrite game systems.
  const mat={
  white:new THREE.MeshPhysicalMaterial({color:0xe7dfcc,roughness:.58,clearcoat:.09,clearcoatRoughness:.44,specularIntensity:.48}),
@@ -96,7 +96,14 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
  function label(text,x,z){const c=document.createElement('canvas');c.width=c.height=128;const t=c.getContext('2d');t.font='54px Georgia';t.textAlign='center';t.textBaseline='middle';t.fillStyle='#c5b89b';t.fillText(text,64,66);const m=new THREE.Mesh(new THREE.PlaneGeometry(.18,.18),new THREE.MeshBasicMaterial({map:canvasTexture(c),transparent:true,opacity:.63,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.313,z);scene.add(m)}for(let i=0;i<8;i++){label('abcdefgh'[i],i-3.5,4.13);label(String(i+1),-4.13,3.5-i)}
  const renderTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2});const composer=new EffectComposer(renderer,renderTarget);composer.addPass(new RenderPass(scene,camera));const ao=new GTAOPass(scene,camera,1,1);ao.updateGtaoMaterial({radius:.19,thickness:.5,distanceExponent:1.8,distanceFallOff:.65,scale:1,samples:12});ao.blendIntensity=.78;ao.updatePdMaterial({lumaPhi:8,depthPhi:2,normalPhi:3,radius:4});composer.addPass(ao);const bokeh=new BokehPass(scene,camera,{focus:5,aperture:.007,maxblur:.008});bokeh.enabled=false;composer.addPass(bokeh);composer.addPass(new OutputPass());
  let orientation='w';
- function resize(w,h){if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;const sign=orientation==='w'?1:-1,pitch=THREE.MathUtils.degToRad(61.5),back=V(0,Math.sin(pitch),sign*Math.cos(pitch)),up=V(0,Math.cos(pitch),-sign*Math.sin(pitch));target.set(0,.46,-sign*(w<h?.18:.05));const tv=Math.tan(THREE.MathUtils.degToRad(15.5)),th=tv*(w/h*1.14);let distance=1;const marginY=Math.max(.64,1-108/h);for(const x of [-4.34,4.34])for(const z of [-4.82,4.82])for(const y of [.01,1.95]){const p=V(x,y,z).sub(target),depth=p.dot(back);distance=Math.max(distance,depth+Math.abs(x)/(th*.97),depth+Math.abs(p.dot(up))/(tv*marginY))}playPosition.copy(back).multiplyScalar(distance).add(target);composer.setSize(w,h);}
+ function resize(w,h){
+ if(!w||!h)return;renderer.setSize(w,h,false);
+ const portrait=w<h,sign=orientation==='w'?1:-1,pitch=THREE.MathUtils.degToRad(61.5),back=V(0,Math.sin(pitch),sign*Math.cos(pitch)),up=V(0,Math.cos(pitch),-sign*Math.sin(pitch));
+ camera.aspect=(w/h)*(portrait?1.28:1);target.set(0,.46,-sign*(portrait?.42:.05));
+ const tv=Math.tan(THREE.MathUtils.degToRad(15.5)),th=tv*camera.aspect;let distance=1,marginY=portrait?Math.max(.72,1-72/h):Math.max(.64,1-108/h);
+ for(const x of [-4.34,4.34])for(const z of [-4.82,4.82])for(const y of [.01,1.95]){const p=V(x,y,z).sub(target),depth=p.dot(back),vertical=depth+Math.abs(p.dot(up))/(tv*marginY);if(portrait)distance=Math.max(distance,vertical);else distance=Math.max(distance,depth+Math.abs(x)/(th*.97),vertical)}
+ playPosition.copy(back).multiplyScalar(distance).add(target);composer.setSize(w,h);
+}
  function lock(){camera.fov=31;camera.position.copy(playPosition);camera.lookAt(target);camera.updateProjectionMatrix()}
  function render(cinema=false,focus=5){bokeh.enabled=cinema;bokeh.uniforms.focus.value=focus;composer.render();}
  function orient(side){orientation=side;room.rotation.y=side==='b'?Math.PI:0;scene.environmentRotation.y=.8+room.rotation.y;resize(stage.clientWidth,stage.clientHeight);lock()}
