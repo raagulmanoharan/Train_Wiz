@@ -1,0 +1,75 @@
+[
+  {
+    "file": "marble_01_diff.jpg",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_diff_1k.jpg",
+    "license": "CC0"
+  },
+  {
+    "file": "marble_01_nor_gl.jpg",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_nor_gl_1k.jpg",
+    "license": "CC0"
+  },
+  {
+    "file": "marble_01_rough.jpg",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_rough_1k.jpg",
+    "license": "CC0"
+  },
+  {
+    "file": "marble_rock_01_diff.jpg",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_rock_01/marble_rock_01_diff_1k.jpg",
+    "license": "CC0"
+  },
+  {
+    "file": "marble_rock_01_nor_gl.jpg",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_rock_01/marble_rock_01_nor_gl_1k.jpg",
+    "license": "CC0"
+  },
+  {
+    "file": "marble_rock_01_rough.jpg",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_rock_01/marble_rock_01_rough_1k.jpg",
+    "license": "CC0"
+  },
+  {
+    "file": "studio.hdr",
+    "source": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/ferndale_studio_04_1k.hdr",
+    "license": "CC0",
+    "asset": "Ferndale Studio 04"
+  },
+  {
+    "directory": "audio",
+    "files": [
+      "Audio/impactGlass_heavy_000.ogg",
+      "Audio/impactGlass_heavy_001.ogg",
+      "Audio/impactGlass_heavy_002.ogg",
+      "Audio/impactGlass_heavy_003.ogg",
+      "Audio/impactGlass_heavy_004.ogg",
+      "Audio/impactGlass_light_000.ogg",
+      "Audio/impactGlass_light_001.ogg",
+      "Audio/impactGlass_light_002.ogg",
+      "Audio/impactGlass_light_003.ogg",
+      "Audio/impactGlass_light_004.ogg",
+      "Audio/impactGlass_medium_000.ogg",
+      "Audio/impactGlass_medium_001.ogg",
+      "Audio/impactGlass_medium_002.ogg",
+      "Audio/impactGlass_medium_003.ogg",
+      "Audio/impactGlass_medium_004.ogg",
+      "Audio/impactPlate_heavy_000.ogg",
+      "Audio/impactPlate_heavy_001.ogg",
+      "Audio/impactPlate_heavy_002.ogg",
+      "Audio/impactPlate_heavy_003.ogg",
+      "Audio/impactPlate_heavy_004.ogg",
+      "Audio/impactPlate_light_000.ogg",
+      "Audio/impactPlate_light_001.ogg",
+      "Audio/impactPlate_light_002.ogg",
+      "Audio/impactPlate_light_003.ogg",
+      "Audio/impactPlate_light_004.ogg",
+      "Audio/impactPlate_medium_000.ogg",
+      "Audio/impactPlate_medium_001.ogg",
+      "Audio/impactPlate_medium_002.ogg",
+      "Audio/impactPlate_medium_003.ogg",
+      "Audio/impactPlate_medium_004.ogg"
+    ],
+    "source": "https://kenney.nl/assets/impact-sounds",
+    "license": "CC0"
+  }
+]
