@@ -102,7 +102,7 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
  camera.aspect=(w/h)*(portrait?1.28:1);target.set(0,.46,-sign*(portrait?.42:.05));
  const tv=Math.tan(THREE.MathUtils.degToRad(15.5)),th=tv*camera.aspect;let distance=1,marginY=portrait?Math.max(.72,1-72/h):Math.max(.64,1-108/h);
  for(const x of [-4.34,4.34])for(const z of [-4.82,4.82])for(const y of [.01,1.95]){const p=V(x,y,z).sub(target),depth=p.dot(back),vertical=depth+Math.abs(p.dot(up))/(tv*marginY);if(portrait)distance=Math.max(distance,vertical);else distance=Math.max(distance,depth+Math.abs(x)/(th*.97),vertical)}
- playPosition.copy(back).multiplyScalar(distance).add(target);composer.setSize(w,h);
+ if(portrait)distance*=1.27;playPosition.copy(back).multiplyScalar(distance).add(target);composer.setSize(w,h);
 }
  function lock(){camera.fov=31;camera.position.copy(playPosition);camera.lookAt(target);camera.updateProjectionMatrix()}
  function render(cinema=false,focus=5){bokeh.enabled=cinema;bokeh.uniforms.focus.value=focus;composer.render();}
