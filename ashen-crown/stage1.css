@@ -1,0 +1,7 @@
+/* Camera and environment study. Other controls stay in the existing game menu. */
+:root{--ink:#e6dfd2;--muted:#a49c91;--panel:#171714;--accent:#b8aa8a}
+.scene-shade{background:linear-gradient(180deg,#08060885 0,transparent 19%,transparent 85%,#05060736 100%)}
+.hud{padding:calc(19px + env(safe-area-inset-top)) 22px 12px;gap:14px}
+.brand{font-size:16px;letter-spacing:.015em}.brand svg{width:21px;height:21px}.turn-copy{flex-direction:column;gap:4px}.turn strong{font-size:12px}.turn small{font-size:10px;color:#b6ab9b}.turn-dot{width:6px;height:6px}.hud .icon{border:1px solid #dbc5a02b;background:#0d0c0c26}.hud .journal-icon{display:none}.context{background:#121111cc;border-color:#baab8633;font-size:11px;box-shadow:none}.context b{font-weight:500}
+@media(max-width:430px){.hud{padding-left:18px;padding-right:16px}.brand span{display:none}.brand{width:44px}.brand svg{width:23px;height:23px}.turn{margin:0 auto}.turn-copy{align-items:center}.turn strong{letter-spacing:.025em}.turn-dot{display:none}}
+@media(max-height:450px){.hud{padding-top:8px}.context{top:58px}}
