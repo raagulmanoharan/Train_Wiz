@@ -1,0 +1,76 @@
+name: Crown stage-one finish
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/crown-stage1-finish.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Refine only the scene lighting and surface treatment
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          from pathlib import Path
+          root=Path('ashen-crown')
+          req=urllib.request.Request('https://api.polyhaven.com/files/studio_small_09',headers={'User-Agent':'AshenCrown-stage1'})
+          data=json.load(urllib.request.urlopen(req,timeout=60));entry=data['hdri']['1k']['hdr']
+          (root/'art-v6/studio-soft.hdr').write_bytes(urllib.request.urlopen(entry['url'],timeout=90).read())
+          (root/'art-v6/STAGE1-CREDITS.json').write_text(json.dumps({'environment':'Studio Small 09','author':'Sergej Majboroda / Poly Haven','source':entry['url'],'license':'CC0','texture':'Marble Rock 01 / Poly Haven, CC0, color-treated emerald'},indent=2))
+          p=root/'world-stage1.js';s=p.read_text()
+          s=s.replace("'./art-v6/studio.hdr'","'./art-v6/studio-soft.hdr'")
+          s=s.replace('Math.min(24,read(i)*.2126','Math.min(256,read(i)*.2126')
+          s=s.replace('scene.environmentIntensity=.25','scene.environmentIntensity=.32')
+          s=s.replace('key.position.set(5,8,-5)','key.position.set(6,10,5)')
+          s=s.replace('color:0xa09886,roughness:.78','color:0x514c43,roughness:.88')
+          s=s.replace('roughness:.65,metalness:0,clearcoat:.15,clearcoatRoughness:.38','roughness:.42,metalness:0,clearcoat:.20,clearcoatRoughness:.35')
+          s=s.replace('vein=Math.pow(Math.max(0,(.58-l)/.58),1.30),grain=l*.65','vein=Math.pow(THREE.MathUtils.clamp((.43-l)/.33,0,1),2),grain=l')
+          s=s.replace('d.data[i]=12+grain*10+vein*110;d.data[i+1]=23+grain*12+vein*99;d.data[i+2]=21+grain*9+vein*76;','d.data[i]=8+grain*8+vein*125;d.data[i+1]=24+grain*12+vein*124;d.data[i+2]=21+grain*10+vein*101;')
+          s=s.replace('sign*(w<h?.90:.40)','sign*(w<h?.45:.40)')
+          p.write_text(s)
+          p=root/'stage1.html';p.write_text(p.read_text().replace('v=6.2','v=6.3').replace('study 6.2','study 6.3'))
+          PY
+          node --input-type=module --check < ashen-crown/world-stage1.js
+      - name: Install browser
+        run: |
+          mkdir -p /tmp/crown-stage1
+          cd /tmp/crown-stage1
+          npm init -y
+          npm install playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: High-density phone and fixed-camera regression review
+        env:
+          REVIEW_REPO: ${{ github.workspace }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          s=Path('.github/workflows/crown-stage1.yml').read_text()
+          script=textwrap.dedent(s.split("cat > review.cjs <<'JS'\n",1)[1].split('\n          JS',1)[0])
+          script=script.replace('deviceScaleFactor:1,isMobile',"deviceScaleFactor:view.name==='phone'?2:1,isMobile")
+          Path('/tmp/crown-stage1/review.cjs').write_text(script)
+          PY
+          cd /tmp/crown-stage1
+          node review.cjs
+      - name: Publish tested stage-one files only
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ashen-crown/world-stage1.js ashen-crown/stage1.html ashen-crown/art-v6/studio-soft.hdr ashen-crown/art-v6/STAGE1-CREDITS.json
+          git diff --cached --quiet || git commit -m 'Finish the scoped Red Room camera/environment preview with tested mobile framing'
+          git push origin HEAD:gh-pages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-stage1-final
+          path: /tmp/crown-stage1/output
+          retention-days: 7
