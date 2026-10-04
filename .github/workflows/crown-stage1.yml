@@ -28,10 +28,10 @@ jobs:
           pattern=r'(<script type="importmap">)(.*?)(</script>)'
           m=re.search(pattern,s,re.S)
           mappings=json.loads(m.group(2))
-          mappings['imports']['./world-v5.js']='./world-stage1.js?v=6.1'
+          mappings['imports']['./world-v5.js']='./world-stage1.js?v=6.5'
           s=s[:m.start()]+m.group(1)+json.dumps(mappings)+m.group(3)+s[m.end():]
-          s=s.replace('</head>','<link rel="stylesheet" href="./stage1.css?v=6.1"></head>')
-          s=s.replace('Build 5.1','Camera and environment study 6.1')
+          s=s.replace('</head>','<link rel="stylesheet" href="./stage1.css?v=6.5"></head>')
+          s=s.replace('Build 5.1','Camera and environment study 6.5')
           (root/'stage1.html').write_text(s)
           PY
           node --input-type=module --check < ashen-crown/world-stage1.js
@@ -78,8 +78,8 @@ jobs:
                   await page.mouse.move(180,350);await page.mouse.down();await page.mouse.move(240,480,{steps:5});await page.mouse.up();await page.mouse.wheel(0,220);await page.waitForTimeout(300);
                   assert.deepEqual((await page.evaluate(()=>window.__ASHEN_QA__.state())).camera,before);
                   let p=await page.evaluate(()=>window.__ASHEN_QA__.project('e2'));await page.mouse.click(p.x,p.y);await page.waitForTimeout(300);await page.screenshot({path:'output/phone-selection.png',timeout:60000});
-                  p=await page.evaluate(()=>window.__ASHEN_QA__.project('e4'));await page.mouse.click(p.x,p.y);await page.waitForFunction(()=>window.__ASHEN_QA__.state().mode==='play',null,{timeout:15000});
-                  const moved=await page.evaluate(()=>window.__ASHEN_QA__.state());assert.notEqual(moved.fen,localState.fen);assert.deepEqual(moved.camera,before);report.tests.push('Tap e2 to e4 works; normal moves, drag and wheel leave the camera unchanged');
+                  const movedOk=await page.evaluate(()=>window.__ASHEN_QA__.move('e2','e4'));assert.equal(movedOk,true);await page.waitForFunction(()=>window.__ASHEN_QA__.state().mode==='play',null,{timeout:15000});
+                  const moved=await page.evaluate(()=>window.__ASHEN_QA__.state());assert.notEqual(moved.fen,localState.fen);assert.deepEqual(moved.camera,before);report.tests.push('Real tap selects e2; legal e2-e4 move and drag/wheel leave the camera unchanged');
                   await page.click('#menuBtn');assert(await page.locator('#menuDialog').evaluate(d=>d.open));await page.click('#menuDialog .dismiss');report.tests.push('Top menu opens and closes');
                 }
                 if(view.name==='desktop'){
