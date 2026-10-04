@@ -1,0 +1,1 @@
+Stockfish.js 19.0.0, unmodified lite-single build. GPLv3. Corresponding source: https://github.com/nmrugg/stockfish.js/tree/v19.0.0 . Three.js 0.186.1 (MIT), chess.js 1.4.0 (BSD-2-Clause), cannon-es 0.20.0 (MIT). Chess Set by Riley Queen / Poly Haven, CC0: https://polyhaven.com/a/chess_set . All dependencies are pinned and served from this repository.
