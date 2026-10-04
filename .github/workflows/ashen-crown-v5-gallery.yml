@@ -1,0 +1,42 @@
+name: Crown v5 screenshot gallery
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/ashen-crown-v5-gallery.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gallery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Browser
+        run: |
+          mkdir /tmp/gallery
+          cd /tmp/gallery
+          npm init -y
+          npm install playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Screenshots
+        env:
+          ROOT: ${{ github.workspace }}
+        run: |
+          cd /tmp/gallery
+          cat > run.cjs <<'JS'
+          const fs=require('fs'),{spawn}=require('child_process'),{chromium}=require('playwright');
+          (async()=>{fs.mkdirSync('out');const server=spawn('python3',['-m','http.server','4173','--directory',process.env.ROOT]);const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});const errors=[];
+          try{for(const view of [{name:'phone',width:393,height:852},{name:'desktop',width:1440,height:1000}]){const page=await browser.newPage({viewport:{width:view.width,height:view.height},deviceScaleFactor:1});page.on('pageerror',e=>errors.push(e.message));page.on('console',e=>{if(e.type()==='error')errors.push(e.text())});await page.goto('http://127.0.0.1:4173/ashen-crown/v5.html?qa=1',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__ASHEN_READY__===true,null,{timeout:45000});await page.evaluate(()=>window.__ASHEN_QA__.render());await page.screenshot({path:'out/'+view.name+'-scene.png'});await page.evaluate(()=>window.__ASHEN_QA__.damageScenario());await page.waitForTimeout(500);await page.screenshot({path:'out/'+view.name+'-damage.png'});await page.evaluate(()=>{window.__ASHEN_QA__.load('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');window.__ASHEN_QA__.preview('n');window.__ASHEN_QA__.setTime(.685)});await page.screenshot({path:'out/'+view.name+'-impact.png'});await page.evaluate(()=>window.__ASHEN_QA__.setTime(.84));await page.waitForTimeout(500);await page.screenshot({path:'out/'+view.name+'-aftermath.png'});await page.evaluate(()=>{window.__ASHEN_QA__.skip();window.__ASHEN_QA__.resume()});if(view.name==='phone'){await page.click('#menuBtn');await page.click('#newBtn');await page.selectOption('#modeSetting','ai');await page.screenshot({path:'out/phone-opponents.png'})}fs.writeFileSync('out/'+view.name+'-state.json',JSON.stringify(await page.evaluate(()=>window.__ASHEN_QA__.state()),null,2));await page.close()}}
+          catch(e){errors.push(String(e));throw e}finally{fs.writeFileSync('out/errors.json',JSON.stringify(errors,null,2));await browser.close();server.kill()}})().catch(e=>{console.error(e);process.exitCode=1});
+          JS
+          node run.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-v5-progress-gallery
+          path: /tmp/gallery/out
+          retention-days: 7
