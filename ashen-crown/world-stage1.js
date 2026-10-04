@@ -97,15 +97,42 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
  const renderTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2});const composer=new EffectComposer(renderer,renderTarget);composer.addPass(new RenderPass(scene,camera));const ao=new GTAOPass(scene,camera,1,1);ao.updateGtaoMaterial({radius:.19,thickness:.5,distanceExponent:1.8,distanceFallOff:.65,scale:1,samples:12});ao.blendIntensity=.78;ao.updatePdMaterial({lumaPhi:8,depthPhi:2,normalPhi:3,radius:4});composer.addPass(ao);const bokeh=new BokehPass(scene,camera,{focus:5,aperture:.007,maxblur:.008});bokeh.enabled=false;composer.addPass(bokeh);composer.addPass(new OutputPass());
  let orientation='w';
  function resize(w,h){
- if(!w||!h)return;renderer.setSize(w,h,false);
- const portrait=w<h,sign=orientation==='w'?1:-1,pitch=THREE.MathUtils.degToRad(61.5),back=V(0,Math.sin(pitch),sign*Math.cos(pitch)),up=V(0,Math.cos(pitch),-sign*Math.sin(pitch));
- camera.aspect=(w/h)*(portrait?1.62:1);target.set(0,.46,-sign*(portrait?.42:.05));
- const tv=Math.tan(THREE.MathUtils.degToRad(15.5)),th=tv*camera.aspect;let distance=1,marginY=portrait?Math.max(.72,1-72/h):Math.max(.64,1-108/h);
- for(const x of [-4.34,4.34])for(const z of [-4.82,4.82])for(const y of [.01,1.95]){const p=V(x,y,z).sub(target),depth=p.dot(back),vertical=depth+Math.abs(p.dot(up))/(tv*marginY);if(portrait)distance=Math.max(distance,vertical);else distance=Math.max(distance,depth+Math.abs(x)/(th*.97),vertical)}
- if(portrait)distance*=1.27;playPosition.copy(back).multiplyScalar(distance).add(target);composer.setSize(w,h);
+ if(!w||!h)return;
+ renderer.setSize(w,h,false);
+ camera.aspect=w/h;
+ const portrait=w<h;
+ const sign=orientation==='w'?1:-1;
+ if(portrait){
+   // Reference-matched phone composition:
+   // board ~74% viewport width, mild perspective, generous table around it.
+   camera.fov=38;
+   const pitch=THREE.MathUtils.degToRad(68);
+   const back=V(0,Math.sin(pitch),sign*Math.cos(pitch));
+   target.set(0,.40,0);
+   const desiredBoardWidth=8.9;
+   const desiredWidthFraction=.74;
+   const tanHalfV=Math.tan(THREE.MathUtils.degToRad(camera.fov*.5));
+   const tanHalfH=tanHalfV*camera.aspect;
+   const distance=desiredBoardWidth/(2*desiredWidthFraction*tanHalfH);
+   playPosition.copy(back).multiplyScalar(distance).add(target);
+ }else{
+   camera.fov=31;
+   const pitch=THREE.MathUtils.degToRad(61.5);
+   const back=V(0,Math.sin(pitch),sign*Math.cos(pitch));
+   const up=V(0,Math.cos(pitch),-sign*Math.sin(pitch));
+   target.set(0,.46,-sign*.05);
+   const tv=Math.tan(THREE.MathUtils.degToRad(camera.fov*.5)),th=tv*camera.aspect;
+   let distance=1,marginY=Math.max(.64,1-108/h);
+   for(const x of [-4.34,4.34])for(const z of [-4.82,4.82])for(const y of [.01,1.95]){
+     const p=V(x,y,z).sub(target),depth=p.dot(back);
+     distance=Math.max(distance,depth+Math.abs(x)/(th*.97),depth+Math.abs(p.dot(up))/(tv*marginY));
+   }
+   playPosition.copy(back).multiplyScalar(distance).add(target);
+ }
+ composer.setSize(w,h);
 }
- function lock(){camera.fov=31;camera.position.copy(playPosition);camera.lookAt(target);camera.updateProjectionMatrix()}
+ function lock(){camera.position.copy(playPosition);camera.lookAt(target);camera.updateProjectionMatrix()}
  function render(cinema=false,focus=5){bokeh.enabled=cinema;bokeh.uniforms.focus.value=focus;composer.render();}
  function orient(side){orientation=side;room.rotation.y=side==='b'?Math.PI:0;scene.environmentRotation.y=.8+room.rotation.y;resize(stage.clientWidth,stage.clientHeight);lock()}
- const api={renderer,scene,camera,target,mat,boardRoot,install,resize,lock,render,playPosition,orient};if(new URLSearchParams(location.search).has('qa'))window.__ENV_QA__={state:()=>({stage:'Camera and environment',hdr:loaded.hdr,stone:loaded.stone,ao:'GTAO',pitch:61.5,orientation,canvas:renderer.domElement.getBoundingClientRect().toJSON(),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles}),world:api};return api;
+ const api={renderer,scene,camera,target,mat,boardRoot,install,resize,lock,render,playPosition,orient};if(new URLSearchParams(location.search).has('qa'))window.__ENV_QA__={state:()=>({stage:'Camera and environment',hdr:loaded.hdr,stone:loaded.stone,ao:'GTAO',pitch:(stage.clientWidth<stage.clientHeight?68:61.5),orientation,canvas:renderer.domElement.getBoundingClientRect().toJSON(),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles}),world:api};return api;
 }
