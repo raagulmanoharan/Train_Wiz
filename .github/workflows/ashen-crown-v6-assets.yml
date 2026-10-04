@@ -1,0 +1,57 @@
+name: Crown v6 physical materials
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/ashen-crown-v6-assets.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download source-licensed materials and Foley
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, pathlib, zipfile, io, shutil
+          root=pathlib.Path('ashen-crown/art-v6'); root.mkdir(parents=True,exist_ok=True)
+          def get(url):
+            req=urllib.request.Request(url,headers={'User-Agent':'AshenCrown/6 art-development'})
+            return urllib.request.urlopen(req,timeout=90).read()
+          manifest=[]
+          for asset in ['marble_01','marble_rock_01']:
+            data=json.loads(get('https://api.polyhaven.com/files/'+asset))
+            (root/(asset+'-source.json')).write_text(json.dumps(data))
+            for key in ['diff','nor_gl','rough']:
+              maps=data.get(key) or data.get({'diff':'Diffuse','rough':'Rough','nor_gl':'nor_gl'}[key])
+              if maps is None: raise RuntimeError(str(list(data)))
+              entry=maps['1k']['jpg'];name=asset+'_'+key+'.jpg'
+              (root/name).write_bytes(get(entry['url']));manifest.append({'file':name,'source':entry['url'],'license':'CC0'})
+          data=json.loads(get('https://api.polyhaven.com/files/ferndale_studio_04'))
+          entry=data['hdri']['1k']['hdr'];(root/'studio.hdr').write_bytes(get(entry['url']));manifest.append({'file':'studio.hdr','source':entry['url'],'license':'CC0','asset':'Ferndale Studio 04'})
+          archive=zipfile.ZipFile(io.BytesIO(get('https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip')))
+          selected=[n for n in archive.namelist() if n.lower().endswith(('.ogg','.wav')) and any(k in n.lower() for k in ['stone','rock','glass','plate'])]
+          (root/'audio').mkdir(exist_ok=True)
+          for n in selected: (root/'audio'/pathlib.Path(n).name).write_bytes(archive.read(n))
+          if not selected: raise RuntimeError('No recorded stone/glass impacts: '+str(archive.namelist()))
+          manifest.append({'directory':'audio','files':selected,'source':'https://kenney.nl/assets/impact-sounds','license':'CC0'})
+          (root/'CREDITS.json').write_text(json.dumps(manifest,indent=2))
+          print(json.dumps(manifest,indent=2))
+          PY
+      - name: Commit only the new art assets
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ashen-crown/art-v6
+          git diff --cached --quiet || git commit -m 'Add CC0 marble textures, studio HDR and recorded stone impacts'
+          git push origin HEAD:gh-pages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-v6-materials
+          path: |
+            ashen-crown/art-v6
+            ashen-crown/vendor/stockfish
+          retention-days: 7
