@@ -1,0 +1,35 @@
+name: Ashen Crown v4 assets
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/ashen-crown-v4-assets.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bundle runtime for reproducible browser testing
+        run: |
+          mkdir -p /tmp/crown-v4/assets /tmp/crown-v4/vendor
+          cd /tmp/crown-v4
+          npm init -y
+          npm install three@0.186.1 chess.js@1.4.0 cannon-es@0.20.0
+          cp -r node_modules/three/build vendor/three-build
+          cp -r node_modules/three/examples/jsm vendor/three-addons
+          cp node_modules/chess.js/dist/esm/chess.js vendor/chess.js
+          cp node_modules/cannon-es/dist/cannon-es.js vendor/cannon-es.js
+          curl --fail -L https://raw.githubusercontent.com/Mike1934F/3d-chess/main/assets/chess_set.gltf -o assets/chess_set.gltf
+          curl --fail -L https://raw.githubusercontent.com/Mike1934F/3d-chess/main/assets/chess_set.bin -o assets/chess_set.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ashen-crown-v4-runtime
+          path: |
+            /tmp/crown-v4/vendor
+            /tmp/crown-v4/assets
+          retention-days: 7
