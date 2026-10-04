@@ -1,0 +1,35 @@
+name: Crown HD material pack
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/crown-hd-materials.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  materials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch 2K PBR materials and 2K HDRI
+        run: |
+          set -e
+          mkdir -p ashen-crown/art-v6/2k ashen-crown/textures/2k
+          curl --fail --retry 2 -L https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_rock_01/marble_rock_01_diff_2k.jpg -o ashen-crown/art-v6/2k/marble_rock_01_diff_2k.jpg
+          curl --fail --retry 2 -L https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_rock_01/marble_rock_01_nor_gl_2k.jpg -o ashen-crown/art-v6/2k/marble_rock_01_nor_gl_2k.jpg
+          curl --fail --retry 2 -L https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_rock_01/marble_rock_01_rough_2k.jpg -o ashen-crown/art-v6/2k/marble_rock_01_rough_2k.jpg
+          curl --fail --retry 2 -L https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/ferndale_studio_04_2k.hdr -o ashen-crown/art-v6/2k/ferndale_studio_04_2k.hdr
+          for surface in board pieces_white pieces_black; do
+            for map in diff nor_gl arm; do
+              curl --fail --retry 2 -L "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/chess_set/chess_set_${surface}_${map}_2k.jpg" -o "ashen-crown/textures/2k/chess_set_${surface}_${map}_2k.jpg"
+            done
+          done
+          ls -lh ashen-crown/art-v6/2k ashen-crown/textures/2k
+      - name: Commit HD material pack
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ashen-crown/art-v6/2k ashen-crown/textures/2k
+          git diff --cached --quiet || git commit -m 'Add 2K PBR chess, marble and HDRI assets'
+          git push origin HEAD:gh-pages
