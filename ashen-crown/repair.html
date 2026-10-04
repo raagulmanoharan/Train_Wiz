@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111310">
+<meta name="description" content="The Ashen Crown. A cinematic, local two-player chess game.">
+<title>The Ashen Crown</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111310'/%3E%3Cpath d='M14 43V24l11 9 7-17 7 17 11-9v19zm0 6h36' fill='none' stroke='%23d9d2be' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./game.css?v=3.1">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/","chess.js":"https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm"}}</script>
+</head>
+<body>
+<svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-crown" viewBox="0 0 24 24"><path d="M4 17V8l5 4 3-7 3 7 5-4v9zM4 21h16"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+<symbol id="i-view" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6v15M3 4c4-1 7 0 9 2 2-2 5-3 9-2v15c-4-1-7 0-9 2-2-2-5-3-9-2z"/></symbol>
+<symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M8 4 3 9l5 5M3 9h10a7 7 0 0 1 0 14" transform="translate(0 -2)"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-5-5 5 5-5 5"/></symbol>
+</defs></svg>
+<main class="app" id="app">
+<header class="header"><a class="brand" href="./" aria-label="The Ashen Crown home"><svg><use href="#i-crown"/></svg><span>The Ashen Crown</span></a><span class="mode-label">Local two-player</span><button class="icon-button" id="menuBtn" aria-label="Game menu" aria-haspopup="dialog"><svg><use href="#i-menu"/></svg></button></header>
+<div class="match-layout"><section class="play-area" aria-label="Chess match">
+<div class="player player-black" id="blackPlayer"><span class="stone black-stone" aria-hidden="true"></span><div><strong>Veyr</strong><span>Black</span></div><span class="player-state" id="blackState">Waiting</span></div>
+<div class="stage" id="stage"><div id="viewport" role="application" aria-label="3D chess board. Tap a piece, then a highlighted destination. Drag to rotate."></div><div class="loading" id="loading" role="status"><span class="loader"></span><h1>Setting the table</h1><p id="loadingDetail">Loading the carved pieces.</p><button class="outline-button" id="retryBtn" hidden>Try again</button></div><div class="cinema-top" aria-hidden="true"></div><div class="cinema-bottom" aria-hidden="true"></div><button class="skip-button" id="skipBtn" hidden>Skip <span aria-hidden="true">↗</span></button><div class="caption" id="caption" aria-live="polite"><p id="captureMeta"></p><h2 id="captureTitle"></h2><p id="captureText"></p></div><p class="gesture-hint" id="gestureHint">Tap to move <span>·</span> Drag to look around</p></div>
+<div class="player player-white is-turn" id="whitePlayer"><span class="stone white-stone" aria-hidden="true"></span><div><strong>Aurell</strong><span>White</span></div><div class="player-state"><b id="turnLabel">White to move</b><span id="moveLabel">Move 1</span></div></div>
+<button class="selection" id="selectionBtn" disabled><span id="selectionLabel">Choose a piece to begin.</span><svg id="selectionArrow" hidden><use href="#i-arrow"/></svg></button></section>
+<aside class="sidebar" aria-label="Match record"><div class="sidebar-heading"><span>THE TREATY TABLE</span><h1>Edrath, year 40</h1><p>Two courts. One broken peace.</p></div><h2 class="record-title">Moves</h2><div class="move-record" id="moveRecord"><p class="empty-record">The first move is yours.</p></div><button class="story-link" id="worldBtn">The story of this board <svg><use href="#i-arrow"/></svg></button></aside></div>
+<nav class="toolbar" aria-label="Match controls"><button id="viewBtn" disabled><svg><use href="#i-view"/></svg><span>View</span></button><button id="journalBtn"><svg><use href="#i-book"/></svg><span>Journal</span></button><button id="soundBtn" aria-pressed="false"><svg><use href="#i-sound"/></svg><span id="soundLabel">Sound off</span></button><button id="undoBtn" disabled><svg><use href="#i-undo"/></svg><span>Undo</span></button></nav>
+</main>
+<dialog id="menuDialog" class="sheet"><header><div><p>THE ASHEN CROWN</p><h2>Game menu</h2></div><button class="icon-button close-dialog" aria-label="Close menu"><svg><use href="#i-close"/></svg></button></header><div class="menu-actions"><button id="newGameBtn" disabled><span>New game</span><small>Play both sides on this device.</small></button><button id="previewBtn" disabled><span>Watch a capture</span><small>A knight's capture. Your match will be preserved.</small></button><label class="setting"><span>Capture cinematics</span><input type="checkbox" id="cinemaSetting" checked></label><label class="setting"><span>Reduce motion</span><input type="checkbox" id="motionSetting"></label></div><footer><p>Carved chess geometry by Riley Queen / Poly Haven, CC0. Material treatment and board built for The Ashen Crown.</p><p>Visual repair build 3.1 · No online opponent</p></footer></dialog>
+<dialog id="journalDialog" class="sheet journal"><header><div><p>THE CHRONICLE</p><h2>The Treaty Table</h2></div><button class="icon-button close-dialog" aria-label="Close journal"><svg><use href="#i-close"/></svg></button></header><p class="world-story">The doors of Edrath's treaty hall were cut into this table after the peace failed. Thirty-two witnesses were carved into its pieces. Each move advances the war; each capture adds a name to its history.</p><div id="journalContent"><p class="muted">The witnesses will appear when the pieces are loaded.</p></div></dialog>
+<dialog id="pieceDialog" class="sheet dossier"><header><div><p id="loreMeta"></p><h2 id="loreName"></h2></div><button class="icon-button close-dialog" aria-label="Close piece story"><svg><use href="#i-close"/></svg></button></header><p class="world-story" id="loreText"></p></dialog>
+<dialog id="confirmDialog" class="sheet"><header><h2>Start again?</h2></header><p class="world-story">This ends the current match and resets the board.</p><div class="confirm-actions"><button class="outline-button close-dialog">Keep playing</button><button class="filled-button" id="confirmReset">New game</button></div></dialog>
+<noscript><p>This game needs JavaScript enabled.</p></noscript>
+<script>
+const ui={open(id){document.getElementById(id).showModal()},closeAll(){document.querySelectorAll('dialog[open]').forEach(d=>d.close())}};
+document.getElementById('menuBtn').onclick=()=>ui.open('menuDialog');document.getElementById('journalBtn').onclick=()=>ui.open('journalDialog');document.getElementById('worldBtn').onclick=()=>ui.open('journalDialog');
+document.querySelectorAll('.close-dialog').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target!==d)return;const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}));
+document.getElementById('retryBtn').onclick=()=>location.reload();
+window.reportGameError=e=>{console.error(e);document.getElementById('loading').hidden=false;document.getElementById('loading').classList.add('failed');document.querySelector('#loading h1').textContent='The board could not load';document.getElementById('loadingDetail').textContent='Check your connection and try again. The 3D models need to finish loading.';document.getElementById('retryBtn').hidden=false;};
+import('./game.js?v=3.1').catch(window.reportGameError);
+</script>
+</body></html>
