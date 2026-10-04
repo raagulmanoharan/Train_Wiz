@@ -1,0 +1,59 @@
+name: Ashen Crown v5 runtime
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/ashen-crown-v5-runtime.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch pinned runtime and licensed assets
+        run: |
+          mkdir -p /tmp/crown-deps
+          cd /tmp/crown-deps
+          npm init -y
+          npm install --ignore-scripts three@0.186.1 chess.js@1.4.0 cannon-es@0.20.0 stockfish@19.0.0
+          cd "$GITHUB_WORKSPACE"
+          mkdir -p ashen-crown/vendor/stockfish ashen-crown/assets ashen-crown/textures
+          cp -r /tmp/crown-deps/node_modules/three/build ashen-crown/vendor/three-build
+          cp -r /tmp/crown-deps/node_modules/three/examples/jsm ashen-crown/vendor/three-addons
+          cp /tmp/crown-deps/node_modules/three/LICENSE ashen-crown/vendor/THREE-LICENSE.txt
+          cp /tmp/crown-deps/node_modules/chess.js/dist/esm/chess.js ashen-crown/vendor/chess.js
+          cp /tmp/crown-deps/node_modules/chess.js/LICENSE ashen-crown/vendor/CHESS-LICENSE.txt
+          cp /tmp/crown-deps/node_modules/cannon-es/dist/cannon-es.js ashen-crown/vendor/cannon-es.js
+          cp /tmp/crown-deps/node_modules/cannon-es/LICENSE ashen-crown/vendor/CANNON-LICENSE.txt
+          find /tmp/crown-deps/node_modules/stockfish -name 'stockfish-19-lite-single*' -exec cp {} ashen-crown/vendor/stockfish/ \;
+          test -f ashen-crown/vendor/stockfish/stockfish-19-lite-single.js
+          test -f ashen-crown/vendor/stockfish/stockfish-19-lite-single.wasm
+          curl --fail --retry 2 -L https://raw.githubusercontent.com/nmrugg/stockfish.js/master/Copying.txt -o ashen-crown/vendor/stockfish/COPYING.txt
+          curl --fail --retry 2 -L https://raw.githubusercontent.com/nmrugg/stockfish.js/master/README.md -o ashen-crown/vendor/stockfish/README.md
+          for f in chess_set.gltf chess_set.bin; do curl --fail --retry 2 -L "https://raw.githubusercontent.com/Mike1934F/3d-chess/main/assets/$f" -o "ashen-crown/assets/$f"; done
+          for surface in board pieces_white pieces_black; do
+            for map in diff nor_gl arm; do
+              f="chess_set_${surface}_${map}_1k.jpg"
+              curl --fail --retry 2 -L "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chess_set/$f" -o "ashen-crown/textures/$f"
+            done
+          done
+          echo 'Stockfish.js 19.0.0, unmodified lite-single build. GPLv3. Corresponding source: https://github.com/nmrugg/stockfish.js/tree/v19.0.0 . Three.js 0.186.1 (MIT), chess.js 1.4.0 (BSD-2-Clause), cannon-es 0.20.0 (MIT). Chess Set by Riley Queen / Poly Haven, CC0: https://polyhaven.com/a/chess_set . All dependencies are pinned and served from this repository.' > ashen-crown/vendor/NOTICE.txt
+      - name: Commit runtime without changing existing game source
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ashen-crown/vendor ashen-crown/assets ashen-crown/textures
+          git diff --cached --quiet || git commit -m 'Bundle self-hosted Crown dependencies, Stockfish and CC0 textures'
+          git push origin HEAD:gh-pages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crown-v5-runtime
+          path: |
+            ashen-crown/vendor/stockfish
+            ashen-crown/vendor/NOTICE.txt
+          retention-days: 7
