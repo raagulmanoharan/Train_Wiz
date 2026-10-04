@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ashen-crown-review
+  cancel-in-progress: true
 jobs:
   review:
     runs-on: ubuntu-latest
@@ -15,53 +18,90 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install isolated browser review dependencies
+      - name: Install browser
         run: |
           mkdir -p /tmp/crown-review
           cd /tmp/crown-review
           npm init -y
-          npm install playwright@1.56.1 chess.js@1.4.0 three@0.186.1 || npm install playwright@1.56.1 chess.js@1.4.0 three@0.180.0
+          npm install playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Capture actual hosted page and collect reproducible assets
+      - name: Render and test the staged game
         env:
           REVIEW_REPO: ${{ github.workspace }}
         run: |
           cd /tmp/crown-review
           cat > review.cjs <<'JS'
-          const fs = require('fs');
-          const path = require('path');
-          const { chromium } = require('playwright');
+          const fs=require('fs');
+          const assert=require('node:assert/strict');
+          const {spawn}=require('node:child_process');
+          const {chromium}=require('playwright');
           async function main(){
-            fs.mkdirSync('output/assets',{recursive:true});
-            fs.cpSync('node_modules/three','output/vendor/three',{recursive:true});
-            fs.cpSync('node_modules/chess.js','output/vendor/chess.js',{recursive:true});
-            fs.copyFileSync(process.env.REVIEW_REPO+'/ashen-crown/index.html','output/deployed-source.html');
-            for(const file of ['chess_set.gltf','chess_set.bin']){
-              const r=await fetch('https://raw.githubusercontent.com/Mike1934F/3d-chess/main/assets/'+file);
-              if(!r.ok)throw Error(file+': '+r.status);
-              fs.writeFileSync('output/assets/'+file,Buffer.from(await r.arrayBuffer()));
-            }
+            fs.mkdirSync('output',{recursive:true});
+            for(const file of ['repair.html','index.html','game.css','game.js'])fs.copyFileSync(process.env.REVIEW_REPO+'/ashen-crown/'+file,'output/'+file);
+            const server=spawn('python3',['-m','http.server','4173','--bind','127.0.0.1','--directory',process.env.REVIEW_REPO],{stdio:'ignore'});
             const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
-            const log=[];
-            for(const view of [{name:'mobile',width:393,height:852},{name:'desktop',width:1440,height:1000}]){
-              const page=await browser.newPage({viewport:{width:view.width,height:view.height},deviceScaleFactor:1,hasTouch:view.name==='mobile',isMobile:view.name==='mobile'});
-              page.on('pageerror',e=>log.push(view.name+' '+e.message));
-              page.on('console',e=>{if(e.type()==='error')log.push(view.name+' '+e.text())});
-              page.on('response',r=>{if(r.status()>=400)log.push(view.name+' HTTP '+r.status()+' '+r.url())});
-              try{
-                await page.goto('https://raagulmanoharan.github.io/Train_Wiz/ashen-crown/?review='+Date.now(),{waitUntil:'networkidle',timeout:60000});
-                await page.waitForTimeout(12000);
-                await page.screenshot({path:'output/'+view.name+'-live.png',fullPage:true});
-                fs.writeFileSync('output/'+view.name+'-dom.html',await page.content());
-                log.push(view.name+' dimensions '+JSON.stringify(await page.evaluate(()=>({innerWidth,innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight}))));
-              }catch(e){log.push(view.name+' '+e.message);await page.screenshot({path:'output/'+view.name+'-failure.png',fullPage:true}).catch(()=>{});}
-              await page.close();
-            }
-            await browser.close();
-            fs.writeFileSync('output/review-log.json',JSON.stringify(log,null,2));
-            console.log(JSON.stringify(log,null,2));
+            const report={commit:process.env.GITHUB_SHA,views:[],tests:[],errors:[],scope:'Actual Three.js WebGL rendering in headless Chromium. Software renderer; not a physical iPhone performance test.'};
+            const views=[{name:'phone',width:393,height:852},{name:'small-phone',width:360,height:640},{name:'landscape',width:844,height:390},{name:'desktop',width:1440,height:1000}];
+            const delay=ms=>new Promise(r=>setTimeout(r,ms));
+            try{
+              await delay(1000);
+              for(const view of views){
+                const page=await browser.newPage({viewport:{width:view.width,height:view.height},deviceScaleFactor:1,hasTouch:view.width<900,isMobile:view.width<900});
+                page.on('pageerror',e=>report.errors.push(view.name+': '+e.message));
+                page.on('console',e=>{if(e.type()==='error')report.errors.push(view.name+': '+e.text())});
+                await page.goto('http://127.0.0.1:4173/ashen-crown/repair.html?qa=1',{waitUntil:'networkidle',timeout:60000});
+                await page.waitForFunction('window.__ASHEN_READY__ === true',{timeout:45000});
+                await page.waitForTimeout(700);
+                const state=await page.evaluate(()=>window.__ASHEN_QA__.state());
+                assert.equal(state.pieces,32);assert.notEqual(state.whiteColor,state.blackColor);assert.notEqual(state.lightTile,state.darkTile);
+                const dimensions=await page.evaluate(()=>({width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,stage:document.getElementById('stage').getBoundingClientRect().toJSON()}));
+                assert(dimensions.scrollWidth<=view.width);assert(dimensions.scrollHeight<=view.height+1);
+                await page.screenshot({path:'output/'+view.name+'-board.png'});
+                report.views.push({name:view.name,state,dimensions});
+                if(view.name==='phone'){
+                  await page.evaluate(()=>window.__ASHEN_QA__.select('e2'));
+                  await page.screenshot({path:'output/phone-selection.png'});
+                  async function move(from,to){await page.evaluate(({from,to})=>{window.__ASHEN_QA__.select(from);window.__ASHEN_QA__.move(to)},{from,to});await page.waitForFunction("window.__ASHEN_QA__.state().mode === 'play'",{timeout:15000});}
+                  await move('e2','e4');await move('d7','d5');
+                  const beforeCapture=await page.evaluate(()=>window.__ASHEN_QA__.state());
+                  await move('e4','d5');
+                  const afterCapture=await page.evaluate(()=>window.__ASHEN_QA__.state());
+                  assert.equal(afterCapture.pieces,31);assert.equal(afterCapture.board.find(p=>p.id==='e2').square,'d5');
+                  await page.click('#undoBtn');assert.equal((await page.evaluate(()=>window.__ASHEN_QA__.state())).fen,beforeCapture.fen);
+                  report.tests.push('Legal pawn capture, 31 visible pieces, undo restores FEN');
+                  const beforePreview=await page.evaluate(()=>window.__ASHEN_QA__.state());
+                  await page.evaluate(()=>window.__ASHEN_QA__.preview());
+                  await page.evaluate(()=>window.__ASHEN_QA__.freezeCapture(.48));
+                  await page.waitForTimeout(400);await page.screenshot({path:'output/phone-capture-approach.png'});
+                  await page.evaluate(()=>window.__ASHEN_QA__.freezeCapture(.72));
+                  await page.waitForTimeout(400);await page.screenshot({path:'output/phone-capture-aftermath.png'});
+                  await page.evaluate(()=>window.__ASHEN_QA__.resume());
+                  await page.waitForFunction("window.__ASHEN_QA__.state().mode === 'play'",{timeout:12000});
+                  const afterPreview=await page.evaluate(()=>window.__ASHEN_QA__.state());
+                  assert.equal(afterPreview.fen,beforePreview.fen);assert.deepEqual(afterPreview.board,beforePreview.board);
+                  report.tests.push('Actual 3D capture timeline renders; preview preserves exact board and FEN');
+                  await page.click('#menuBtn');await page.uncheck('#cinemaSetting');await page.click('#menuDialog .close-dialog');
+                  await page.evaluate(()=>window.__ASHEN_QA__.loadFen('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1'));
+                  await move('e1','g1');let castled=await page.evaluate(()=>window.__ASHEN_QA__.state());assert.equal(castled.board.find(p=>p.id==='h1').square,'f1');report.tests.push('Castling moves king and rook');
+                  await page.evaluate(()=>window.__ASHEN_QA__.loadFen('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1'));
+                  await move('e5','d6');let ep=await page.evaluate(()=>window.__ASHEN_QA__.state());assert.equal(ep.pieces,3);assert.equal(ep.board.find(p=>p.id==='d5').alive,false);report.tests.push('En passant removes the pawn from its actual square');
+                  await page.evaluate(()=>window.__ASHEN_QA__.loadFen('4k3/P7/8/8/8/8/8/4K3 w - - 0 1'));
+                  await page.evaluate(()=>{window.__ASHEN_QA__.select('a7');window.__ASHEN_QA__.move('a8')});
+                  await page.getByRole('button',{name:'Queen',exact:true}).click();
+                  await page.waitForFunction("window.__ASHEN_QA__.state().mode === 'play'",{timeout:5000});
+                  assert.equal((await page.evaluate(()=>window.__ASHEN_QA__.state())).board.find(p=>p.id==='a7').type,'q');report.tests.push('Promotion choice replaces the pawn sculpture');
+                  await page.click('#journalBtn');assert.equal(await page.locator('#journalDialog').evaluate(d=>d.open),true);await page.keyboard.press('Escape');
+                  await page.click('#menuBtn');await page.screenshot({path:'output/phone-menu.png'});await page.click('#menuDialog .close-dialog');
+                  report.tests.push('Journal and game menu open and close');
+                }
+                await page.close();
+              }
+              assert.equal(report.errors.length,0,'Browser errors: '+report.errors.join('\n'));
+              report.passed=true;
+            }catch(e){report.passed=false;report.errors.push(String(e));throw e}
+            finally{fs.writeFileSync('output/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();server.kill();}
           }
-          main().catch(e=>{console.error(e);process.exitCode=1;});
+          main().catch(e=>{console.error(e);process.exitCode=1});
           JS
           node review.cjs
       - uses: actions/upload-artifact@v4
