@@ -1,0 +1,120 @@
+name: Crown v5 final polish and verification
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/ashen-crown-v5-polish.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply reviewed fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('ashen-crown')
+          p=root/'world-v5.js';s=p.read_text()
+          s=s.replace('boardMesh.rotation.y=Math.PI;', 'boardMesh.rotation.y=Math.PI/2;')
+          s=s.replace('[-4.44,4.44]','[-4.82,4.82]').replace('[.01,1.6]','[.01,1.95]')
+          s=s.replace('THREE.PCFSoftShadowMap','THREE.PCFShadowMap')
+          s=s.replace('const bend=Math.sin(y*.006)*6+Math.sin(y*.002+x*.005)*12,grain=Math.sin((x+bend)*.48)*2+Math.sin((x+bend)*.10)*3+Math.sin(x*.017+y*.002)*6;','const phase=y*Math.PI*2/1024,px=x*Math.PI*2/1024,bend=Math.sin(phase)*3+Math.sin(phase*2+px)*4,grain=Math.sin(px*77+bend)*2+Math.sin(px*17+bend*.3)*3+Math.sin(px*3+phase)*3;')
+          s=s.replace('[[-5.8,-5.2,1.1],[-6.5,-4.8,.7]]','[[-3.8,-6.1,1.1],[-4.5,-5.8,.7]]').replace('book.position.set(6,.05,-4.5)','book.position.set(3.2,.05,-6.25)').replace('5.4,.025,-2.8','4.3,.025,-5.35')
+          p.write_text(s)
+          p=root/'cinema-v5.js';s=p.read_text().replace('p.radius+victim.radius+.10','p.radius+victim.radius+.025').replace('TOP+victim.height+.13','TOP+victim.height+.018');p.write_text(s)
+          p=root/'engine-v5.js';s=p.read_text().replace('this.initializing=null;this.lastInfo=null;','this.initializing=null;this.lastInfo=null;this.initTimer=0;this.initReject=null;')
+          s=s.replace('this.initializing=new Promise((resolve,reject)=>{const worker=','this.initializing=new Promise((resolve,reject)=>{this.initReject=reject;const worker=')
+          s=s.replace("const timer=setTimeout(()=>{this.destroy();reject(new Error('The chess engine took too long to load.'))},25000);","const timer=this.initTimer=setTimeout(()=>{this.initReject=null;this.destroy();reject(new Error('The chess engine took too long to load.'))},25000);")
+          s=s.replace('clearTimeout(timer);this.ready=true;','clearTimeout(timer);this.initReject=null;this.ready=true;')
+          s=s.replace('destroy(){if(this.pending)',"destroy(){clearTimeout(this.initTimer);if(this.initReject){this.initReject(new DOMException('Engine request cancelled','AbortError'));this.initReject=null;}if(this.pending)")
+          p.write_text(s)
+          p=root/'game-v5.js';s=p.read_text().replace('let pendingLevel=1,ready=false,lastFrame=performance.now();','let pendingLevel=1,ready=false,lastFrame=performance.now(),dirty=true;')
+          s=s.replace('function clearSelection(){selected=','function clearSelection(){dirty=true;selected=').replace('function sync(){const turn=','function sync(){dirty=true;const turn=')
+          s=s.replace('lastFrame=now;if(animation)','lastFrame=now;if(!animation&&!dirty)return;if(animation)').replace("world.render(mode==='capture',director.focus)}","world.render(mode==='capture',director.focus);dirty=false;}")
+          s=s.replace("$('damageSetting').onchange=()=>{settings.damage=","$('damageSetting').onchange=()=>{dirty=true;settings.damage=").replace('new ResizeObserver(()=>{world.resize','new ResizeObserver(()=>{dirty=true;world.resize')
+          p.write_text(s)
+          p=root/'damage-v5.js';s=p.read_text();s=s.split(' half(side,amount,losses){')[0]
+          s=s.replace("this.signature='';this.geometries=[];","this.signature='';this.baseMeshes=[];this.geometries=[];")
+          s=s.replace('this.signature=signature;this.clear();if(!enabled)return;','this.signature=signature;this.clear();this.erodeEdges(enabled);if(!enabled)return;')
+          s+='''
+           erodeEdges(enabled){
+            this.world.boardRoot.updateWorldMatrix(true,true);
+            if(!this.baseMeshes.length)this.world.boardRoot.traverse(mesh=>{if(!mesh.isMesh)return;mesh.geometry=mesh.geometry.clone();this.baseMeshes.push({mesh,base:mesh.geometry.attributes.position.array.slice()});});
+            const points=[];for(const side of ['w','b']){const rnd=seeded(side==='w'?973:5543),sign=side==='w'?1:-1,loss=enabled?this.state[side]:0;for(let i=0;i<Math.floor(loss/3);i++)points.push({x:-4.4+rnd()*8.8,z:sign*4.77,radius:.25+rnd()*.40,depth:.04+Math.min(.16,loss*.006)});}
+            for(const {mesh,base} of this.baseMeshes){const attr=mesh.geometry.attributes.position,inv=mesh.matrixWorld.clone().invert();for(let i=0;i<attr.count;i++){const original=V(base[i*3],base[i*3+1],base[i*3+2]),p=original.clone().applyMatrix4(mesh.matrixWorld);let amount=0;if(Math.abs(p.z)>4.13)for(const chip of points){const dist=Math.hypot(p.x-chip.x,p.z-chip.z);if(dist<chip.radius)amount=Math.max(amount,(1-dist/chip.radius)*chip.depth);}if(amount){p.y=Math.max(.025,p.y-amount);p.z-=Math.sign(p.z)*amount*.45;p.applyMatrix4(inv);attr.setXYZ(i,p.x,p.y,p.z);}else attr.setXYZ(i,original.x,original.y,original.z);}attr.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
+           }
+           half(side,amount,losses){
+            const rnd=seeded(side==='w'?5741:11982),sign=side==='w'?1:-1,positions=[[],[],[]];
+            const tri=(bucket,a,b,c)=>positions[bucket].push(...a,...b,...c);
+            const quad=(bucket,a,b,c,d)=>{tri(bucket,a,b,c);tri(bucket,a,c,d)};
+            const crack=(x,z,angle,length,width,depth)=>{
+             const count=Math.max(8,Math.ceil(length/.08)),points=[];
+             for(let i=0;i<=count;i++){
+              const taper=Math.pow(1-i/(count+1),.6),w=width*(.5+rnd()*.8)*taper;
+              points.push({x,z,w});angle+=(rnd()-.5)*.75;
+              x=Math.max(-3.98,Math.min(3.98,x+Math.cos(angle)*length/count));
+              z=sign*Math.max(.08,Math.min(3.98,sign*(z+Math.sin(angle)*length/count)));
+              if(depth&&i>3&&i<count*.75&&(i%9===4))crack(x,z,angle+(rnd()>.5?1:-1)*(.65+rnd()*.4),length*.3,width*.48,depth-1);
+             }
+             for(let i=0;i<points.length-1;i++){
+              const a=points[i],b=points[i+1],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz)||1,nx=-dz/len,nz=dx/len;
+              const bed=TOP+.005,lip=TOP+.016,edge=.009;
+              const al=[a.x+nx*a.w,bed,a.z+nz*a.w],ar=[a.x-nx*a.w,bed,a.z-nz*a.w],bl=[b.x+nx*b.w,bed,b.z+nz*b.w],br=[b.x-nx*b.w,bed,b.z-nz*b.w];
+              quad(0,al,bl,br,ar);
+              const bucket=(Math.floor((a.x+b.x)/2+4)+Math.floor(4-(a.z+b.z)/2))%2===0?1:2;
+              quad(bucket,[a.x+nx*(a.w+edge),lip,a.z+nz*(a.w+edge)],[b.x+nx*(b.w+edge),lip,b.z+nz*(b.w+edge)],bl,al);
+              quad(bucket,ar,br,[b.x-nx*(b.w+edge),lip,b.z-nz*(b.w+edge)],[a.x-nx*(a.w+edge),lip,a.z-nz*(a.w+edge)]);
+             }
+            };
+            const roots=losses.filter(x=>x.type!=='p').slice(0,6);if(!roots.length)roots.push(losses[0]);
+            for(const loss of roots){const weight=VALUES[loss.type]||1,x=Math.max(-3.8,Math.min(3.8,(loss.id.charCodeAt(0)-100.5)+(rnd()-.5)*.4));crack(x,sign*3.98,-sign*Math.PI/2+(rnd()-.5)*.45,Math.min(3.7,.65+weight*.16+amount*.055),.009+weight*.0018+amount*.00028,1);}
+            for(const [i,array] of positions.entries()){if(!array.length)continue;const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(array,3));geo.computeVertexNormals();const m=this.mesh(geo,new THREE.MeshStandardMaterial({color:[0x161610,0x4b4a3c,0x9a8e72][i],roughness:.94,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1}));m.receiveShadow=true;}
+            for(let i=0;i<Math.floor(amount*1.2);i++){const x=-4.4+rnd()*8.8,z=sign*(4.88+rnd()*.38),s=.025+rnd()*.065;const g=new THREE.DodecahedronGeometry(s,0);g.scale(1,.6,1.45);const a=this.mesh(g,new THREE.MeshStandardMaterial({color:i%3===0?0x958773:0x35372f,roughness:.96}));a.position.set(x,.04+s*.35,z);a.rotation.set(rnd()*3,rnd()*6,rnd()*2);a.castShadow=true;a.receiveShadow=true;}
+           }
+          }
+          '''
+          p.write_text(s)
+          p=root/'v5.html';p.write_text(p.read_text().replace('v=5.0','v=5.1').replace('Build 5.0','Build 5.1'))
+          PY
+          for f in ashen-crown/*-v5.js; do node --input-type=module --check < "$f"; done
+      - name: Install browser
+        run: |
+          mkdir -p /tmp/crown-review
+          cd /tmp/crown-review
+          npm init -y
+          npm install playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify the exact polished files
+        env:
+          REVIEW_REPO: ${{ github.workspace }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          source=Path('.github/workflows/ashen-crown-v5-review.yml').read_text()
+          script=textwrap.dedent(source.split("cat > review.cjs <<'JS'\n",1)[1].split('\n          JS',1)[0])
+          script=script.replace("path:'output/'+name+'.png'","path:'output/'+name+'.png',timeout:60000")
+          Path('/tmp/crown-review/review.cjs').write_text(script)
+          PY
+          cd /tmp/crown-review
+          node review.cjs
+      - name: Save the verified build
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ashen-crown/world-v5.js ashen-crown/damage-v5.js ashen-crown/cinema-v5.js ashen-crown/engine-v5.js ashen-crown/game-v5.js ashen-crown/v5.html
+          git diff --cached --quiet || git commit -m 'Verify and polish full-screen chess, contact-safe captures and persistent damage'
+          git push origin HEAD:gh-pages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-v5-final-review
+          path: /tmp/crown-review/output
+          retention-days: 7
