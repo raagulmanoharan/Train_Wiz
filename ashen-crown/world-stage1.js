@@ -108,9 +108,9 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
    camera.fov=38;
    const pitch=THREE.MathUtils.degToRad(68);
    const back=V(0,Math.sin(pitch),sign*Math.cos(pitch));
-   target.set(0,.40,-sign*.78);
+   target.set(0,.40,-sign*1.58);
    const desiredBoardWidth=8.9;
-   const desiredWidthFraction=.82;
+   const desiredWidthFraction=.86;
    const tanHalfV=Math.tan(THREE.MathUtils.degToRad(camera.fov*.5));
    const tanHalfH=tanHalfV*camera.aspect;
    const distance=desiredBoardWidth/(2*desiredWidthFraction*tanHalfH);
