@@ -1,0 +1,73 @@
+name: Crown environment lighting review
+on:
+  push:
+    branches: [gh-pages]
+    paths: ['.github/workflows/crown-stage1-lighting.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Correct visible lighting issues in environment only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('ashen-crown');p=root/'world-stage1.js';s=p.read_text()
+          s=s.replace('curtain.position.set(0,5.0,-10.6)','curtain.position.set(0,5.0,-12.1)')
+          s=s.replace('velvetWash.target.position.set(-1,4,-10.5)','velvetWash.target.position.set(-1,4,-12.0)')
+          s=s.replace('color:0x8e6940,metalness:1,roughness:.32,bumpMap:micro,bumpScale:.008,clearcoat:.18','color:0xa08158,metalness:1,roughness:.51,bumpMap:micro,bumpScale:.005,clearcoat:.08')
+          s=s.replace('color:0x241f20,roughness:.67','color:0x3d3028,roughness:.67')
+          s=s.replace('color:0xffffff,roughness:.25,metalness:0,clearcoat:.34,clearcoatRoughness:.2','color:0xffffff,roughness:.65,metalness:0,clearcoat:.15,clearcoatRoughness:.38')
+          s=s.replace('tableMat.normalScale.set(.045,.045)','tableMat.normalScale.set(.025,.025)')
+          s=s.replace('new THREE.HemisphereLight(0xc4d5d4,0x29201e,.24)','new THREE.HemisphereLight(0xc4d5d4,0x29201e,.35)')
+          s=s.replace('ao.blendIntensity=.8','ao.blendIntensity=.60')
+          # Retain the HDR luminance and softbox structure without its unrelated colored gels.
+          old='hdr.mapping=THREE.EquirectangularReflectionMapping;'
+          replacement='''const hd=hdr.image.data,half=hd instanceof Uint16Array,channels=hd.length/(hdr.image.width*hdr.image.height);for(let i=0;i<hd.length;i+=channels){const read=j=>half?THREE.DataUtils.fromHalfFloat(hd[j]):hd[j],lum=Math.min(24,read(i)*.2126+read(i+1)*.7152+read(i+2)*.0722);for(let c=0;c<3;c++){const val=lum*[1,.97,.92][c];hd[i+c]=half?THREE.DataUtils.toHalfFloat(val):val;}}hdr.needsUpdate=true;hdr.mapping=THREE.EquirectangularReflectionMapping;'''
+          assert old in s;s=s.replace(old,replacement)
+          s=s.replace('scene.environmentIntensity=.30','scene.environmentIntensity=.25')
+          p.write_text(s)
+          p=root/'stage1.html';p.write_text(p.read_text().replace('v=6.1','v=6.2').replace('study 6.1','study 6.2'))
+          PY
+          node --input-type=module --check < ashen-crown/world-stage1.js
+      - name: Install Chromium
+        run: |
+          mkdir -p /tmp/crown-stage1
+          cd /tmp/crown-stage1
+          npm init -y
+          npm install playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Render and check the exact revised files
+        env:
+          REVIEW_REPO: ${{ github.workspace }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          s=Path('.github/workflows/crown-stage1.yml').read_text()
+          script=textwrap.dedent(s.split("cat > review.cjs <<'JS'\n",1)[1].split('\n          JS',1)[0])
+          Path('/tmp/crown-stage1/review.cjs').write_text(script)
+          PY
+          cd /tmp/crown-stage1
+          node review.cjs
+      - name: Save tested environmental correction only
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ashen-crown/world-stage1.js ashen-crown/stage1.html
+          git diff --cached --quiet || git commit -m 'Neutralize HDR reflections and refine Red Room surfaces without changing game systems'
+          git push origin HEAD:gh-pages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-stage1-lighting-review
+          path: /tmp/crown-stage1/output
+          retention-days: 7
