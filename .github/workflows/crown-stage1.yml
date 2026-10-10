@@ -62,17 +62,22 @@ jobs:
                 page=await browser.newPage({viewport:{width:view.width,height:view.height},deviceScaleFactor:1,isMobile:view.width<900,hasTouch:view.width<900});
                 page.on('pageerror',e=>report.errors.push(view.name+': '+e.message));
                 page.on('console',m=>{if(m.type()==='error')report.errors.push(view.name+': '+m.text());});
-                await page.goto('http://127.0.0.1:4173/ashen-crown/stage1.html?qa=1',{waitUntil:'networkidle',timeout:90000});
-                await page.waitForFunction(()=>window.__ASHEN_READY__===true,null,{timeout:90000});
-                await page.waitForTimeout(500);
-                const env=await page.evaluate(()=>window.__ENV_QA__.state());const state=await page.evaluate(()=>window.__ASHEN_QA__.state());
-                assert.equal(env.hdr,true);assert.equal(env.stone,true);assert.equal(state.pieces,32);
+                const started=Date.now();
+                await page.goto('http://127.0.0.1:4173/ashen-crown/stage1.html?qa=1',{waitUntil:'domcontentloaded',timeout:90000});
+                await page.waitForFunction(()=>window.__ASHEN_READY__===true,null,{timeout:30000});
+                const readyMs=Date.now()-started;
+                const initialEnv=await page.evaluate(()=>window.__ENV_QA__.state());const state=await page.evaluate(()=>window.__ASHEN_QA__.state());
+                assert.equal(state.pieces,32);
+                report.tests.push(view.name+': first playable frame in '+readyMs+'ms without waiting for HDR/PBR enhancement');
+                await page.waitForFunction(()=>{const e=window.__ENV_QA__.state();return e.hdr&&e.stone},null,{timeout:20000});
+                await page.waitForTimeout(120);
+                const env=await page.evaluate(()=>window.__ENV_QA__.state());
                 assert.equal(env.canvas.width,view.width);assert.equal(env.canvas.height,view.height);
                 await page.screenshot({path:'output/'+view.name+'.png',timeout:60000});
                 const points=await page.evaluate(()=>['a1','h1','a8','h8'].map(s=>window.__ASHEN_QA__.project(s)));
                 assert(points.every(p=>p.x>0&&p.x<view.width&&p.y>55&&p.y<view.height));
                 const dimensions=await page.evaluate(()=>({w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight}));assert(dimensions.w<=view.width);assert(dimensions.h<=view.height+1);
-                report.views.push({view,env,points});report.tests.push(view.name+': loaded HDR and stone; 32 pieces; fullscreen canvas; four corners visible; no overflow');
+                report.views.push({view,readyMs,initialEnv,env,points});report.tests.push(view.name+': loaded HDR and stone; 32 pieces; fullscreen canvas; four corners visible; no overflow');
                 if(view.name==='phone'){
                   await page.evaluate(()=>window.__ASHEN_QA__.load('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',{mode:'local',cinema:'off'}));await page.waitForTimeout(120);const localState=await page.evaluate(()=>window.__ASHEN_QA__.state());const before=localState.camera;
                   await page.mouse.move(180,350);await page.mouse.down();await page.mouse.move(240,480,{steps:5});await page.mouse.up();await page.mouse.wheel(0,220);await page.waitForTimeout(300);
