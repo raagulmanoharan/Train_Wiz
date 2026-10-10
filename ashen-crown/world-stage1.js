@@ -88,16 +88,19 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
  black:new THREE.MeshPhysicalMaterial({color:0x8f9597,roughness:.54,clearcoat:.10,clearcoatRoughness:.42,specularIntensity:.52}),
  board:new THREE.MeshPhysicalMaterial({color:0xc8beac,roughness:1,clearcoat:0,clearcoatRoughness:1,specularIntensity:.12})
 };const boardRoot=new THREE.Group();scene.add(boardRoot);const loader=new THREE.TextureLoader();
- async function surface(name,material,res='1k'){
+ function surface(name,material,res='1k'){
  const base=res==='2k'?'./textures/2k/':'./textures/';
  const suffix=res==='2k'?'_2k':'_1k';
- const maps=await Promise.all(['diff','nor_gl','arm'].map(k=>loader.loadAsync(`${base}chess_set_${name}_${k}${suffix}.jpg`)));
- for(const t of maps){t.flipY=false;t.anisotropy=Math.min(res==='2k'?8:4,renderer.capabilities.getMaxAnisotropy())}
- maps[0].colorSpace=THREE.SRGBColorSpace;
+ const make=(kind,srgb=false)=>{
+   const t=loader.load(`${base}chess_set_${name}_${kind}${suffix}.jpg`,tex=>{if(srgb)tex.colorSpace=THREE.SRGBColorSpace;material.needsUpdate=true},undefined,e=>console.warn('Texture skipped:',name,kind,e));
+   t.flipY=false;t.anisotropy=Math.min(res==='2k'?8:4,renderer.capabilities.getMaxAnisotropy());if(srgb)t.colorSpace=THREE.SRGBColorSpace;return t;
+ };
+ const maps=[make('diff',true),make('nor_gl'),make('arm')];
  const old=new Set([material.map,material.normalMap,material.roughnessMap,material.aoMap].filter(Boolean));
  Object.assign(material,{map:maps[0],normalMap:maps[1],roughnessMap:maps[2],aoMap:maps[2],aoMapIntensity:1.0});
  material.normalScale.set(res==='2k'?.82:.62,res==='2k'?.82:.62);material.needsUpdate=true;
  for(const t of old)if(!maps.includes(t))t.dispose?.();
+ return maps;
 }
  const loaded={hdr:false,stone:false};
  async function marbleEnvironment(res='1k'){
@@ -129,15 +132,17 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
  async function install(gltf,scale){
   const boardMesh=gltf.scene.getObjectByName('board').clone(true);boardMesh.scale.setScalar(scale);boardMesh.rotation.y=Math.PI/2;
   boardMesh.traverse(n=>{if(n.isMesh){n.material=mat.board;n.receiveShadow=true;n.castShadow=true}});boardRoot.add(boardMesh);
-  // Fast startup: only the 1K PBR set blocks first interaction.
-  await Promise.all([surface('board',mat.board,'1k'),surface('pieces_white',mat.white,'1k'),surface('pieces_black',mat.black,'1k'),marbleEnvironment('1k')]);
-  // Environment reflections arrive after the first interactive frame.
-  setTimeout(()=>loadHdr('1k').catch(e=>console.warn('HDR fallback:',e)),0);
-  // Keep 2K off phones. Desktop upgrades when idle and never blocks play.
-  const desktop=matchMedia('(min-width: 900px)').matches;
-  if(desktop)setTimeout(()=>Promise.all([
-   surface('board',mat.board,'2k'),surface('pieces_white',mat.white,'2k'),surface('pieces_black',mat.black,'2k'),marbleEnvironment('2k'),loadHdr('2k')
-  ]).catch(e=>console.warn('HD upgrade skipped:',e)),1800);
+  // TextureLoader returns usable texture handles immediately. Cloned piece
+  // materials share these handles, so gameplay does not wait on image downloads.
+  surface('board',mat.board,'1k');surface('pieces_white',mat.white,'1k');surface('pieces_black',mat.black,'1k');
+  // Table marble and image-based lighting are progressive enhancements.
+  requestAnimationFrame(()=>marbleEnvironment('1k').catch(e=>console.warn('Marble fallback:',e)));
+  setTimeout(()=>loadHdr('1k').catch(e=>console.warn('HDR fallback:',e)),120);
+  // Desktop alone receives the expensive 2K upgrade after the match is interactive.
+  if(matchMedia('(min-width: 900px)').matches)setTimeout(()=>{
+    surface('board',mat.board,'2k');surface('pieces_white',mat.white,'2k');surface('pieces_black',mat.black,'2k');
+    marbleEnvironment('2k').catch(e=>console.warn('2K marble skipped:',e));loadHdr('2k').catch(e=>console.warn('2K HDR skipped:',e));
+  },2500);
  }
  function label(text,x,z){const c=document.createElement('canvas');c.width=c.height=128;const t=c.getContext('2d');t.font='54px Georgia';t.textAlign='center';t.textBaseline='middle';t.fillStyle='#c5b89b';t.fillText(text,64,66);const m=new THREE.Mesh(new THREE.PlaneGeometry(.18,.18),new THREE.MeshBasicMaterial({map:canvasTexture(c),transparent:true,opacity:.63,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.313,z);scene.add(m)}for(let i=0;i<8;i++){label('abcdefgh'[i],i-3.5,4.13);label(String(i+1),-4.13,3.5-i)}
  const renderTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2});const composer=new EffectComposer(renderer,renderTarget);composer.addPass(new RenderPass(scene,camera));const ao=new GTAOPass(scene,camera,1,1);ao.updateGtaoMaterial({radius:.22,thickness:.62,distanceExponent:1.6,distanceFallOff:.58,scale:1,samples:16});ao.blendIntensity=.92;ao.updatePdMaterial({lumaPhi:8,depthPhi:2,normalPhi:3,radius:4});composer.addPass(ao);const bokeh=new BokehPass(scene,camera,{focus:5,aperture:.007,maxblur:.008});bokeh.enabled=false;composer.addPass(bokeh);composer.addPass(new OutputPass());
