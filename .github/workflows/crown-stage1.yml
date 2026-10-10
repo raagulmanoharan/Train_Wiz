@@ -28,10 +28,10 @@ jobs:
           pattern=r'(<script type="importmap">)(.*?)(</script>)'
           m=re.search(pattern,s,re.S)
           mappings=json.loads(m.group(2))
-          mappings['imports']['./world-v5.js']='./world-stage1.js?v=6.6'
+          mappings['imports']['./world-v5.js']='./world-stage1.js?v=6.7'
           s=s[:m.start()]+m.group(1)+json.dumps(mappings)+m.group(3)+s[m.end():]
-          s=s.replace('</head>','<link rel="stylesheet" href="./stage1.css?v=6.6"></head>')
-          s=s.replace('Build 5.1','Camera and environment study 6.6')
+          s=s.replace('</head>','<link rel="stylesheet" href="./stage1.css?v=6.7"></head>')\n          s=s.replace("./game-v5.js?v=5.1","./game-v5.js?v=5.2")
+          s=s.replace('Build 5.1','Camera and environment study 6.7')
           (root/'stage1.html').write_text(s)
           PY
           node --input-type=module --check < ashen-crown/world-stage1.js
