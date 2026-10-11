@@ -24,7 +24,7 @@ jobs:
           mkdir -p /tmp/crown-ios
           cd /tmp/crown-ios
           npm init -y
-          npm install playwright@1.56.1
+          npm install playwright@1.56.1 pngjs@7.0.0
           npx playwright install --with-deps webkit
       - name: Test deployed iPhone build
         run: |
@@ -32,6 +32,7 @@ jobs:
           cat > ios.cjs <<'JS'
           const fs=require('fs');
           const {webkit,devices}=require('playwright');
+          const {PNG}=require('pngjs');
           (async()=>{
             const browser=await webkit.launch();
             const ctx=await browser.newContext({...devices['iPhone 15 Pro'],ignoreHTTPSErrors:true});
@@ -58,12 +59,19 @@ jobs:
                 return gl?{ok:true,renderer:gl.getParameter(gl.RENDERER),version:gl.getParameter(gl.VERSION)}:{ok:false};
               });
               await page.screenshot({path:'iphone.png',fullPage:true});
+              const img=PNG.sync.read(fs.readFileSync('iphone.png'));let bright=0,total=0;
+              for(let y=Math.floor(img.height*.24);y<Math.floor(img.height*.82);y+=3)
+               for(let x=Math.floor(img.width*.12);x<Math.floor(img.width*.88);x+=3){
+                const i=(y*img.width+x)*4;total++;
+                if(Math.max(img.data[i],img.data[i+1],img.data[i+2])>48)bright++;
+               }
+              result.visibleBoardFraction=bright/total;
             }catch(e){errors.push('TEST '+e.stack)}
             result.errors=errors;
             fs.writeFileSync('result.json',JSON.stringify(result,null,2));
             console.log(JSON.stringify(result,null,2));
             await browser.close();
-            if(!result.ready)process.exitCode=1;
+            if(!result.ready||result.visibleBoardFraction<.015)process.exitCode=1;
           })();
           JS
           node ios.cjs
