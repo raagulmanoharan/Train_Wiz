@@ -45,8 +45,10 @@ jobs:
             let result={url,ready:false,loadingText:null,errors:[]};
             try{
               await page.goto(url,{waitUntil:'domcontentloaded',timeout:90000});
-              await page.waitForTimeout(15000);
+              await page.waitForTimeout(20000);
               result.ready=await page.evaluate(()=>window.__ASHEN_READY__===true);
+              result.version=await page.evaluate(()=>document.documentElement.innerHTML.match(/game-v5\\.js\\?v=([\\d.]+)/)?.[1]||null);
+              result.errorText=await page.locator('#loadingDetail').textContent().catch(()=>null);
               result.loadingText=await page.locator('#loadingDetail').textContent().catch(()=>null);
               result.body=await page.locator('body').innerText().catch(()=>null);
               result.ua=await page.evaluate(()=>navigator.userAgent);
