@@ -88,11 +88,12 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
  black:new THREE.MeshPhysicalMaterial({color:0x8f9597,roughness:.54,clearcoat:.10,clearcoatRoughness:.42,specularIntensity:.52}),
  board:new THREE.MeshPhysicalMaterial({color:0xc8beac,roughness:1,clearcoat:0,clearcoatRoughness:1,specularIntensity:.12})
 };const boardRoot=new THREE.Group();scene.add(boardRoot);const loader=new THREE.TextureLoader();
- function surface(name,material,res='1k'){
+ function invalidate(){requestAnimationFrame(()=>{if(stage.isConnected)render(false)});}
+function surface(name,material,res='1k'){
  const base=res==='2k'?'./textures/2k/':'./textures/';
  const suffix=res==='2k'?'_2k':'_1k';
  const make=(kind,srgb=false)=>{
-   const t=loader.load(`${base}chess_set_${name}_${kind}${suffix}.jpg`,tex=>{if(srgb)tex.colorSpace=THREE.SRGBColorSpace;material.needsUpdate=true},undefined,e=>console.warn('Texture skipped:',name,kind,e));
+   const t=loader.load(`${base}chess_set_${name}_${kind}${suffix}.jpg`,tex=>{if(srgb)tex.colorSpace=THREE.SRGBColorSpace;material.needsUpdate=true;invalidate()},undefined,e=>console.warn('Texture skipped:',name,kind,e));
    t.flipY=false;t.anisotropy=Math.min(res==='2k'?8:4,renderer.capabilities.getMaxAnisotropy());if(srgb)t.colorSpace=THREE.SRGBColorSpace;return t;
  };
  const maps=[make('diff',true),make('nor_gl'),make('arm')];
@@ -120,14 +121,14 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
   const old=new Set([tableMat.map,tableMat.normalMap,tableMat.roughnessMap].filter(Boolean));
   tableMat.map=emerald;tableMat.normalMap=normal;tableMat.normalScale.set(res==='2k'?.055:.038,res==='2k'?.055:.038);tableMat.roughnessMap=rough;tableMat.needsUpdate=true;
   for(const t of old)if(![emerald,normal,rough].includes(t))t.dispose?.();
-  albedo.dispose();loaded.stone=true;
+  albedo.dispose();loaded.stone=true;invalidate();
  }
  async function loadHdr(res='1k'){
   const url=res==='2k'?'./art-v6/2k/ferndale_studio_04_2k.hdr':'./art-v6/studio-soft.hdr';
   const hdr=await new HDRLoader().loadAsync(url);hdr.mapping=THREE.EquirectangularReflectionMapping;
   const pmrem=new THREE.PMREMGenerator(renderer),next=pmrem.fromEquirectangular(hdr).texture;
   const old=scene.environment;scene.environment=next;scene.environmentIntensity=res==='2k'?.26:.20;scene.environmentRotation.y=.8+room.rotation.y;
-  hdr.dispose();pmrem.dispose();old?.dispose?.();loaded.hdr=true;
+  hdr.dispose();pmrem.dispose();old?.dispose?.();loaded.hdr=true;invalidate();
  }
  async function install(gltf,scale){
   const boardMesh=gltf.scene.getObjectByName('board').clone(true);boardMesh.scale.setScalar(scale);boardMesh.rotation.y=Math.PI/2;
@@ -145,7 +146,17 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
   },2500);
  }
  function label(text,x,z){const c=document.createElement('canvas');c.width=c.height=128;const t=c.getContext('2d');t.font='54px Georgia';t.textAlign='center';t.textBaseline='middle';t.fillStyle='#c5b89b';t.fillText(text,64,66);const m=new THREE.Mesh(new THREE.PlaneGeometry(.18,.18),new THREE.MeshBasicMaterial({map:canvasTexture(c),transparent:true,opacity:.63,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.313,z);scene.add(m)}for(let i=0;i<8;i++){label('abcdefgh'[i],i-3.5,4.13);label(String(i+1),-4.13,3.5-i)}
- const renderTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2});const composer=new EffectComposer(renderer,renderTarget);composer.addPass(new RenderPass(scene,camera));const ao=new GTAOPass(scene,camera,1,1);ao.updateGtaoMaterial({radius:.22,thickness:.62,distanceExponent:1.6,distanceFallOff:.58,scale:1,samples:16});ao.blendIntensity=.92;ao.updatePdMaterial({lumaPhi:8,depthPhi:2,normalPhi:3,radius:4});composer.addPass(ao);const bokeh=new BokehPass(scene,camera,{focus:5,aperture:.007,maxblur:.008});bokeh.enabled=false;composer.addPass(bokeh);composer.addPass(new OutputPass());
+ // Use the native WebGL render path on mobile WebKit and narrow screens.
+ // Allocating HalfFloat MSAA + GTAO at startup caused a blank 3D canvas
+ // even when all JavaScript modules and models had loaded.
+ const safeMobile=/iP(?:hone|ad|od)/.test(navigator.userAgent) || matchMedia('(max-width:899px)').matches;
+ let composer=null,bokeh=null;
+ if(!safeMobile){
+  const renderTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2});
+  composer=new EffectComposer(renderer,renderTarget);composer.addPass(new RenderPass(scene,camera));
+  const ao=new GTAOPass(scene,camera,1,1);ao.updateGtaoMaterial({radius:.22,thickness:.62,distanceExponent:1.6,distanceFallOff:.58,scale:1,samples:16});ao.blendIntensity=.92;ao.updatePdMaterial({lumaPhi:8,depthPhi:2,normalPhi:3,radius:4});composer.addPass(ao);
+  bokeh=new BokehPass(scene,camera,{focus:5,aperture:.007,maxblur:.008});bokeh.enabled=false;composer.addPass(bokeh);composer.addPass(new OutputPass());
+ }
  let orientation='w';
  function resize(w,h){
  if(!w||!h)return;
@@ -180,10 +191,10 @@ const smoke=new THREE.Mesh(new THREE.TubeGeometry(smokeCurve,28,.012,6,false),ne
    }
    playPosition.copy(back).multiplyScalar(distance).add(target);
  }
- composer.setSize(w,h);
+ if(composer)composer.setSize(w,h);
 }
  function lock(){camera.position.copy(playPosition);camera.lookAt(target);camera.updateProjectionMatrix()}
- function render(cinema=false,focus=5){bokeh.enabled=cinema;bokeh.uniforms.focus.value=focus;composer.render();}
+ function render(cinema=false,focus=5){if(!composer){renderer.render(scene,camera);return;}bokeh.enabled=cinema;bokeh.uniforms.focus.value=focus;composer.render();}
  function orient(side){orientation=side;room.rotation.y=side==='b'?Math.PI:0;scene.environmentRotation.y=.8+room.rotation.y;resize(stage.clientWidth,stage.clientHeight);lock()}
- const api={renderer,scene,camera,target,mat,boardRoot,install,resize,lock,render,playPosition,orient};if(new URLSearchParams(location.search).has('qa'))window.__ENV_QA__={state:()=>({stage:'Camera and environment',hdr:loaded.hdr,stone:loaded.stone,ao:'GTAO',pitch:(stage.clientWidth<stage.clientHeight?68:61.5),orientation,canvas:renderer.domElement.getBoundingClientRect().toJSON(),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles}),world:api};return api;
+ const api={renderer,scene,camera,target,mat,boardRoot,install,resize,lock,render,playPosition,orient};if(new URLSearchParams(location.search).has('qa'))window.__ENV_QA__={state:()=>({stage:'Camera and environment',hdr:loaded.hdr,stone:loaded.stone,ao:safeMobile?'native-shadow':'GTAO',pitch:(stage.clientWidth<stage.clientHeight?68:61.5),orientation,canvas:renderer.domElement.getBoundingClientRect().toJSON(),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles}),world:api};return api;
 }
