@@ -1,0 +1,26 @@
+name: Crown syntax gate
+on:
+  push:
+    branches: [gh-pages]
+    paths:
+      - 'ashen-crown/*.js'
+      - 'ashen-crown/stage1.html'
+      - '.github/workflows/crown-syntax.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse all module sources, fail on syntax error
+        run: |
+          set -e
+          for f in ashen-crown/game-v5.js ashen-crown/world-stage1.js ashen-crown/cinema-v5.js ashen-crown/damage-v5.js ashen-crown/engine-v5.js; do
+            echo "Checking $f"
+            node --input-type=module --check < "$f"
+          done
