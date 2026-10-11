@@ -1,0 +1,75 @@
+name: Crown iPhone Safari smoke test
+on:
+  push:
+    branches: [gh-pages]
+    paths:
+      - 'ashen-crown/stage1.html'
+      - 'ashen-crown/world-stage1.js'
+      - 'ashen-crown/game-v5.js'
+      - '.github/workflows/crown-ios-safari.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safari:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install WebKit
+        run: |
+          mkdir -p /tmp/crown-ios
+          cd /tmp/crown-ios
+          npm init -y
+          npm install playwright@1.56.1
+          npx playwright install --with-deps webkit
+      - name: Test deployed iPhone build
+        run: |
+          cd /tmp/crown-ios
+          cat > ios.cjs <<'JS'
+          const fs=require('fs');
+          const {webkit,devices}=require('playwright');
+          (async()=>{
+            const browser=await webkit.launch();
+            const ctx=await browser.newContext({...devices['iPhone 15 Pro'],ignoreHTTPSErrors:true});
+            const page=await ctx.newPage();
+            const errors=[];
+            page.on('pageerror',e=>errors.push('PAGEERROR '+e.stack));
+            page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')errors.push('CONSOLE '+m.type()+' '+m.text())});
+            page.on('requestfailed',r=>errors.push('REQUEST '+r.url()+' '+(r.failure()?.errorText||'')));
+            page.on('response',r=>{if(r.status()>=400)errors.push('HTTP '+r.status()+' '+r.url())});
+            const url='https://raagulmanoharan.github.io/Train_Wiz/ashen-crown/stage1.html?iosqa='+Date.now();
+            let result={url,ready:false,loadingText:null,errors:[]};
+            try{
+              await page.goto(url,{waitUntil:'domcontentloaded',timeout:90000});
+              await page.waitForTimeout(15000);
+              result.ready=await page.evaluate(()=>window.__ASHEN_READY__===true);
+              result.loadingText=await page.locator('#loadingDetail').textContent().catch(()=>null);
+              result.body=await page.locator('body').innerText().catch(()=>null);
+              result.ua=await page.evaluate(()=>navigator.userAgent);
+              result.webgl=await page.evaluate(()=>{
+                const c=document.createElement('canvas');
+                const gl=c.getContext('webgl2')||c.getContext('webgl');
+                return gl?{ok:true,renderer:gl.getParameter(gl.RENDERER),version:gl.getParameter(gl.VERSION)}:{ok:false};
+              });
+              await page.screenshot({path:'iphone.png',fullPage:true});
+            }catch(e){errors.push('TEST '+e.stack)}
+            result.errors=errors;
+            fs.writeFileSync('result.json',JSON.stringify(result,null,2));
+            console.log(JSON.stringify(result,null,2));
+            await browser.close();
+            if(!result.ready)process.exitCode=1;
+          })();
+          JS
+          node ios.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-ios-safari
+          path: |
+            /tmp/crown-ios/result.json
+            /tmp/crown-ios/iphone.png
+          retention-days: 7
